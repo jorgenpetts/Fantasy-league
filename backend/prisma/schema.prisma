@@ -1,0 +1,162 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum PlayerPosition {
+  WICKET_KEEPER
+  BATTER
+  ALL_ROUNDER
+  BOWLER
+}
+
+enum RoundStatus {
+  UPCOMING
+  LOCKED
+  COMPLETED
+}
+
+enum ChipType {
+  WILDCARD
+  TRIPLE_CAPTAIN
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String
+  passwordHash String
+  role         UserRole      @default(USER)
+  fantasyTeams FantasyTeam[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Season {
+  id           String        @id @default(cuid())
+  name         String
+  startDate    DateTime
+  endDate      DateTime
+  active       Boolean       @default(false)
+  rounds       Round[]
+  fantasyTeams FantasyTeam[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Round {
+  id           String              @id @default(cuid())
+  seasonId     String
+  roundNumber  Int
+  name         String
+  deadline     DateTime
+  status       RoundStatus         @default(UPCOMING)
+  season       Season              @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  performances PlayerPerformance[]
+  lineups      FantasyLineup[]
+  chipUsages   ChipUsage[]
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@unique([seasonId, roundNumber])
+  @@index([deadline])
+}
+
+model CricketPlayer {
+  id           String              @id @default(cuid())
+  firstName    String
+  lastName     String
+  position     PlayerPosition
+  price        Decimal             @db.Decimal(8, 2)
+  active       Boolean             @default(true)
+  performances PlayerPerformance[]
+  captaincies  FantasyLineup[]     @relation("LineupCaptain")
+  lineups      FantasyLineupPlayer[]
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+}
+
+model PlayerPerformance {
+  id            String        @id @default(cuid())
+  playerId      String
+  roundId       String
+  runs          Int           @default(0)
+  ballsFaced    Int           @default(0)
+  wickets       Int           @default(0)
+  runsConceded  Int           @default(0)
+  oversBowled   Decimal       @default(0) @db.Decimal(4, 1)
+  catches       Int           @default(0)
+  stumpings     Int           @default(0)
+  runOuts       Int           @default(0)
+  fantasyPoints Int           @default(0)
+  player        CricketPlayer @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  round         Round         @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@unique([playerId, roundId])
+}
+
+model FantasyTeam {
+  id          String          @id @default(cuid())
+  userId      String
+  seasonId    String
+  name        String
+  totalPoints Int             @default(0)
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  season      Season          @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  lineups     FantasyLineup[]
+  chipUsages  ChipUsage[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@unique([userId, seasonId])
+}
+
+model FantasyLineup {
+  id              String                @id @default(cuid())
+  fantasyTeamId   String
+  roundId         String
+  captainId       String
+  roundPoints     Int                   @default(0)
+  transferPenalty Int                   @default(0)
+  fantasyTeam     FantasyTeam           @relation(fields: [fantasyTeamId], references: [id], onDelete: Cascade)
+  round           Round                 @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  captain         CricketPlayer         @relation("LineupCaptain", fields: [captainId], references: [id])
+  players         FantasyLineupPlayer[]
+  createdAt       DateTime              @default(now())
+
+  @@unique([fantasyTeamId, roundId])
+}
+
+model FantasyLineupPlayer {
+  id       String         @id @default(cuid())
+  lineupId String
+  playerId String
+  lineup   FantasyLineup  @relation(fields: [lineupId], references: [id], onDelete: Cascade)
+  player   CricketPlayer  @relation(fields: [playerId], references: [id])
+
+  @@unique([lineupId, playerId])
+}
+
+model ChipUsage {
+  id            String      @id @default(cuid())
+  fantasyTeamId String
+  roundId       String
+  chipType      ChipType
+  fantasyTeam   FantasyTeam @relation(fields: [fantasyTeamId], references: [id], onDelete: Cascade)
+  round         Round       @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+
+  @@unique([fantasyTeamId, roundId, chipType])
+  @@index([fantasyTeamId, chipType])
+}
