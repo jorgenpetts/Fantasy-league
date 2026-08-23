@@ -8,14 +8,33 @@ Mobile-friendly fantasy cricket app for a local club league.
 - `backend/` - Express, TypeScript, Zod, Prisma
 - `shared/` - shared TypeScript domain types
 
-## Backend
+## Backend Setup
 
 ```bash
 cd backend
 npm install
 cp .env.example .env
+npx prisma migrate dev
+npm run dev
+```
+
+Required backend environment variables:
+
+- `DATABASE_URL`
+- `DIRECT_URL`
+- `JWT_SECRET`
+- `CORS_ORIGIN`
+- `AUTH_COOKIE_NAME`
+
+Useful commands:
+
+```bash
+cd backend
+npm run typecheck
 npm run build
-npm start
+npm test
+npx prisma validate
+npx prisma migrate status
 ```
 
 Health check:
@@ -24,12 +43,84 @@ Health check:
 curl http://localhost:4000/api/health
 ```
 
-Prisma schema validation:
+## Backend API Summary
 
-```bash
-cd backend
-npx prisma validate
-```
+Auth:
+
+- `POST /api/auth/register` - create a user account
+- `POST /api/auth/login` - login and set the auth cookie
+- `POST /api/auth/logout` - clear the auth cookie
+- `GET /api/auth/me` - return the authenticated user
+
+Fantasy rules:
+
+- `GET /api/fantasy-rules` - central squad, budget, transfer, chip, and scoring rules
+
+Seasons and rounds:
+
+- `GET /api/seasons`
+- `GET /api/seasons/current`
+- `GET /api/rounds`
+- `GET /api/rounds/current`
+- `GET /api/rounds/:id`
+- `GET /api/rounds/:roundId/performances`
+
+Players:
+
+- `GET /api/players?position=&active=&search=&seasonId=`
+- `GET /api/players/:id`
+- `GET /api/players/:id/performances?seasonId=&roundId=`
+
+Fantasy teams and lineups:
+
+- `POST /api/fantasy-teams`
+- `GET /api/fantasy-teams/me`
+- `GET /api/fantasy-teams/me/status`
+- `GET /api/fantasy-teams/:id`
+- `GET /api/fantasy-teams/:id/lineups`
+- `GET /api/lineups/me/current`
+- `GET /api/lineups/:teamId/:roundId`
+- `PUT /api/lineups/:teamId/:roundId`
+
+Chips:
+
+- `POST /api/fantasy-teams/:teamId/rounds/:roundId/chip`
+- `DELETE /api/fantasy-teams/:teamId/rounds/:roundId/chip`
+
+Dashboard and leaderboards:
+
+- `GET /api/dashboard`
+- `GET /api/leaderboard`
+- `GET /api/leaderboard?seasonId=`
+- `GET /api/leaderboard?roundId=`
+
+Admin:
+
+- `POST /api/admin/seasons`
+- `PUT /api/admin/seasons/:id`
+- `POST /api/admin/players`
+- `PUT /api/admin/players/:id`
+- `POST /api/admin/rounds`
+- `PUT /api/admin/rounds/:id`
+- `GET /api/admin/rounds/:roundId/performances`
+- `PUT /api/admin/rounds/:roundId/performances`
+- `PUT /api/admin/rounds/:roundId/performances/:playerId`
+- `POST /api/admin/rounds/:roundId/recalculate`
+
+## Fantasy Rules
+
+Version 1 uses an 11-player squad with a R110,000,000 budget:
+
+- 1 wicketkeeper
+- 4 batters
+- 2 all-rounders
+- 4 bowlers
+- 3 free transfers per round
+- 4-point penalty per extra transfer
+- 1 Wildcard per season
+- 1 Triple Captain per season
+
+Player prices are stored as integer ZAR amounts.
 
 ## Frontend
 
@@ -38,18 +129,3 @@ cd frontend
 npm install
 npm run dev
 ```
-
-Production build:
-
-```bash
-cd frontend
-npm run build
-```
-
-## Current Scope
-
-The current foundation includes project structure, TypeScript setup, Express
-health checks, Prisma schema for confirmed entities, environment examples, and a
-simple frontend dashboard placeholder.
-
-Unresolved fantasy rules are intentionally not hard-coded yet.

@@ -1,18 +1,71 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f6f8f5;
-  --foreground: #0f172a;
+  --background: #f4f7f1;
+  --surface: #ffffff;
+  --surface-muted: #eef4ec;
+  --foreground: #111814;
+  --muted-foreground: #647067;
+  --border: #d8e2d6;
+  --primary: #14532d;
+  --primary-foreground: #ffffff;
+  --accent: #a3e635;
+  --success: #15803d;
+  --warning: #b45309;
+  --danger: #b91c1c;
+  --ring: #2f855a;
+  --radius-card: 8px;
+  --shadow-soft: 0 12px 32px rgb(17 24 20 / 0.08);
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
   --color-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-ring: var(--ring);
   --font-sans: Arial, Helvetica, sans-serif;
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --radius-card: var(--radius-card);
+  --shadow-soft: var(--shadow-soft);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
 }
 
 body {
-  background: var(--background);
+  min-height: 100%;
+  background:
+    linear-gradient(180deg, rgb(244 247 241 / 0.96), rgb(244 247 241 / 1)),
+    var(--background);
   color: var(--foreground);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: rgb(163 230 53 / 0.35);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }
