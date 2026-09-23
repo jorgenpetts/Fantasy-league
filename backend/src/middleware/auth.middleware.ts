@@ -1,11 +1,10 @@
 import type { NextFunction, Request, Response } from "express";
 import type { UserRole } from "@prisma/client";
 import { env } from "../config/env.js";
-import { getUserById } from "../services/auth.service.js";
 import { AppError } from "../utils/AppError.js";
 import { verifyAuthToken } from "../utils/authToken.js";
 
-export async function requireAuth(
+export function requireAuth(
   req: Request,
   _res: Response,
   next: NextFunction,
@@ -18,7 +17,7 @@ export async function requireAuth(
     }
 
     const payload = verifyAuthToken(token);
-    req.user = await getUserById(payload.sub);
+    req.user = { id: payload.sub, role: payload.role };
     next();
   } catch (error) {
     next(error instanceof AppError ? error : new AppError(401, "Invalid session."));

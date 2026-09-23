@@ -7,8 +7,9 @@ export type AuthenticatedUser = {
   role: UserRole;
 };
 
+export type AuthenticatedPrincipal = Pick<AuthenticatedUser, "id" | "role">;
+
 export type AuthTokenPayload = {
   sub: string;
-  email: string;
   role: UserRole;
 };

@@ -39,7 +39,6 @@ export async function registerUser(input: RegisterInput) {
   const authUser = toAuthenticatedUser(user);
   const token = signAuthToken({
     sub: authUser.id,
-    email: authUser.email,
     role: authUser.role,
   });
 
@@ -64,7 +63,6 @@ export async function loginUser(input: LoginInput) {
   const authUser = toAuthenticatedUser(user);
   const token = signAuthToken({
     sub: authUser.id,
-    email: authUser.email,
     role: authUser.role,
   });
 

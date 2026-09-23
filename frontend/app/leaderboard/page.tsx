@@ -1,11 +1,12 @@
-import { PlaceholderPage } from "@/components/common/placeholder-page";
+import { Suspense } from "react";
+import { PageContainer } from "@/components/layout/page";
+import { Skeleton } from "@/components/ui/state";
+import { LeaderboardPage as LeaderboardFeaturePage } from "@/features/leaderboard/components/leaderboard-page";
 
 export default function LeaderboardPage() {
   return (
-    <PlaceholderPage
-      eyebrow="Leaderboard"
-      title="League standings"
-      description="Overall and round leaderboard tables will be built on the shared leaderboard service."
-    />
+    <Suspense fallback={<PageContainer><Skeleton className="h-[32rem] w-full" /></PageContainer>}>
+      <LeaderboardFeaturePage />
+    </Suspense>
   );
 }

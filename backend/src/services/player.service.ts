@@ -15,31 +15,13 @@ type PlayerWithTotal = CricketPlayer & {
   totalFantasyPoints?: number;
 };
 
-async function resolvePlayerTotalsSeasonId(seasonId?: string) {
-  if (seasonId) {
-    return seasonId;
-  }
-
-  const activeSeason = await prisma.season.findFirst({
-    where: { active: true },
-    orderBy: { startDate: "desc" },
-    select: { id: true },
-  });
-
-  return activeSeason?.id;
-}
-
-async function getPlayerTotals(playerIds: string[], seasonId?: string) {
-  if (playerIds.length === 0) {
-    return new Map<string, number>();
-  }
-
-  const resolvedSeasonId = await resolvePlayerTotalsSeasonId(seasonId);
+async function getPlayerTotals(seasonId?: string) {
   const totals = await prisma.playerPerformance.groupBy({
     by: ["playerId"],
     where: {
-      playerId: { in: playerIds },
-      ...(resolvedSeasonId ? { round: { seasonId: resolvedSeasonId } } : {}),
+      round: seasonId
+        ? { seasonId }
+        : { season: { active: true } },
     },
     _sum: { fantasyPoints: true },
   });
@@ -72,15 +54,13 @@ export async function listPlayers(
       : {}),
   };
 
-  const players = await prisma.cricketPlayer.findMany({
-    where,
-    orderBy: [{ active: "desc" }, { lastName: "asc" }, { firstName: "asc" }],
-  });
-
-  const totals = await getPlayerTotals(
-    players.map((player) => player.id),
-    query.seasonId,
-  );
+  const [players, totals] = await Promise.all([
+    prisma.cricketPlayer.findMany({
+      where,
+      orderBy: [{ active: "desc" }, { lastName: "asc" }, { firstName: "asc" }],
+    }),
+    getPlayerTotals(query.seasonId),
+  ]);
 
   return players.map((player) =>
     toPlayerResponse({
@@ -94,15 +74,16 @@ export async function getPlayerById(
   playerId: string,
   seasonId?: string,
 ): Promise<PlayerResponse> {
-  const player = await prisma.cricketPlayer.findUnique({
-    where: { id: playerId },
-  });
+  const [player, totals] = await Promise.all([
+    prisma.cricketPlayer.findUnique({
+      where: { id: playerId },
+    }),
+    getPlayerTotals(seasonId),
+  ]);
 
   if (!player) {
     throw new AppError(404, "Player not found.");
   }
-
-  const totals = await getPlayerTotals([player.id], seasonId);
 
   return toPlayerResponse({
     ...player,

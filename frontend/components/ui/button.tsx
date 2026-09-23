@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Slot } from "@radix-ui/react-slot";
+import { Slot, Slottable } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -60,7 +60,13 @@ export function Button({
       {...props}
     >
       {isLoading ? <Loader2 className="animate-spin" /> : icon}
-      {size === "icon" ? <span className="sr-only">{children}</span> : children}
+      <Slottable>
+        {size === "icon" && !asChild ? (
+          <span className="sr-only">{children}</span>
+        ) : (
+          children
+        )}
+      </Slottable>
     </Comp>
   );
 }

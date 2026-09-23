@@ -2,11 +2,8 @@ import {
   ChipType,
   Prisma,
   type CricketPlayer,
-  type FantasyLineup,
-  type FantasyLineupPlayer,
   type FantasyTeam,
   type Round,
-  type Season,
   type User,
 } from "@prisma/client";
 import { prisma } from "../config/prisma.js";
@@ -28,27 +25,51 @@ type PlayerSelection = Pick<
   "id" | "firstName" | "lastName" | "position" | "price" | "active"
 >;
 
-type LineupWithDetails = FantasyLineup & {
-  fantasyTeam: FantasyTeam & {
-    user: Pick<User, "id" | "name">;
-    chipUsages: {
-      roundId: string;
-      chipType: ChipType;
-    }[];
-  };
-  round: Round & {
-    season: Season;
-  };
-  captain: PlayerSelection;
-  players: (FantasyLineupPlayer & {
-    player: PlayerSelection;
-  })[];
+const lineupDetailsInclude = {
+  fantasyTeam: {
+    include: {
+      user: { select: { id: true, name: true } },
+      chipUsages: { select: { roundId: true, chipType: true } },
+    },
+  },
+  round: { include: { season: true } },
+  captain: {
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      position: true,
+      price: true,
+      active: true,
+    },
+  },
+  players: {
+    include: {
+      player: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          position: true,
+          price: true,
+          active: true,
+        },
+      },
+    },
+    orderBy: { player: { lastName: "asc" as const } },
+  },
   transferSummary: {
-    playersIn: string[];
-    playersOut: string[];
-    wildcardActive: boolean;
-  } | null;
-};
+    select: {
+      playersIn: true,
+      playersOut: true,
+      wildcardActive: true,
+    },
+  },
+} satisfies Prisma.FantasyLineupInclude;
+
+type LineupWithDetails = Prisma.FantasyLineupGetPayload<{
+  include: typeof lineupDetailsInclude;
+}>;
 
 export type LineupPlayerResponse = {
   id: string;
@@ -129,6 +150,7 @@ export type CurrentUserLineupResponse = {
   };
   lineup: LineupResponse | null;
   suggestedLineup: LineupResponse | null;
+  previousLineup: LineupResponse | null;
 };
 
 export type FantasyTeamStatusResponse = {
@@ -242,6 +264,7 @@ async function getFantasyTeamAndRound(teamId: string, roundId: string) {
   const [fantasyTeam, round] = await Promise.all([
     prisma.fantasyTeam.findUnique({
       where: { id: teamId },
+      relationLoadStrategy: "join",
       include: {
         user: { select: { id: true, name: true } },
         season: true,
@@ -249,6 +272,7 @@ async function getFantasyTeamAndRound(teamId: string, roundId: string) {
     }),
     prisma.round.findUnique({
       where: { id: roundId },
+      relationLoadStrategy: "join",
       include: { season: true },
     }),
   ]);
@@ -271,50 +295,16 @@ async function getFantasyTeamAndRound(teamId: string, roundId: string) {
   return { fantasyTeam, round };
 }
 
-async function getLineupWithDetails(lineupId: string) {
+async function getLineupByTeamAndRoundWithDetails(
+  fantasyTeamId: string,
+  roundId: string,
+) {
   return prisma.fantasyLineup.findUnique({
-    where: { id: lineupId },
-    include: {
-      fantasyTeam: {
-        include: {
-          user: { select: { id: true, name: true } },
-          chipUsages: { select: { roundId: true, chipType: true } },
-        },
-      },
-      round: { include: { season: true } },
-      captain: {
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          position: true,
-          price: true,
-          active: true,
-        },
-      },
-      players: {
-        include: {
-          player: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              position: true,
-              price: true,
-              active: true,
-            },
-          },
-        },
-        orderBy: { player: { lastName: "asc" } },
-      },
-      transferSummary: {
-        select: {
-          playersIn: true,
-          playersOut: true,
-          wildcardActive: true,
-        },
-      },
+    where: {
+      fantasyTeamId_roundId: { fantasyTeamId, roundId },
     },
+    relationLoadStrategy: "join",
+    include: lineupDetailsInclude,
   });
 }
 
@@ -330,45 +320,27 @@ async function findPreviousLineup(
         roundNumber: { lt: round.roundNumber },
       },
     },
-    include: {
-      fantasyTeam: {
-        include: {
-          user: { select: { id: true, name: true } },
-          chipUsages: { select: { roundId: true, chipType: true } },
-        },
+    relationLoadStrategy: "join",
+    include: lineupDetailsInclude,
+    orderBy: { round: { roundNumber: "desc" } },
+  });
+}
+
+async function findPreviousLineupSelection(
+  fantasyTeamId: string,
+  round: Pick<Round, "seasonId" | "roundNumber">,
+) {
+  return prisma.fantasyLineup.findFirst({
+    where: {
+      fantasyTeamId,
+      round: {
+        seasonId: round.seasonId,
+        roundNumber: { lt: round.roundNumber },
       },
-      round: { include: { season: true } },
-      captain: {
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          position: true,
-          price: true,
-          active: true,
-        },
-      },
-      players: {
-        include: {
-          player: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              position: true,
-              price: true,
-              active: true,
-            },
-          },
-        },
-      },
-      transferSummary: {
-        select: {
-          playersIn: true,
-          playersOut: true,
-          wildcardActive: true,
-        },
-      },
+    },
+    select: {
+      captainId: true,
+      players: { select: { playerId: true } },
     },
     orderBy: { round: { roundNumber: "desc" } },
   });
@@ -401,33 +373,6 @@ async function validateSelectedPlayers(input: ManualLineupInput) {
   };
 }
 
-async function resolveLineupInput(
-  fantasyTeamId: string,
-  round: Round,
-  input: SaveLineupInput,
-): Promise<ManualLineupInput> {
-  if (isManualLineupInput(input)) {
-    return input;
-  }
-
-  const previousLineup = await findPreviousLineup(fantasyTeamId, round);
-
-  if (!previousLineup) {
-    throw new AppError(404, "No previous lineup found to copy.");
-  }
-
-  const playerIds = previousLineup.players.map(({ playerId }) => playerId);
-
-  if (!playerIds.includes(previousLineup.captainId)) {
-    throw new AppError(400, "Previous lineup captain is not in the squad.");
-  }
-
-  return {
-    playerIds,
-    captainId: previousLineup.captainId,
-  };
-}
-
 export async function saveLineup(
   teamId: string,
   roundId: string,
@@ -444,13 +389,33 @@ export async function saveLineup(
     throw new AppError(403, "This round is locked and can no longer be edited.");
   }
 
-  const resolvedInput = await resolveLineupInput(teamId, round, input);
-  const { playerIds } = await validateSelectedPlayers(resolvedInput);
-  const previousLineup = await findPreviousLineup(teamId, round);
+  const previousLineupPromise = findPreviousLineupSelection(teamId, round);
+  const activeChipPromise = getActiveChipForRound(teamId, roundId);
+  let resolvedInput: ManualLineupInput;
+
+  if (isManualLineupInput(input)) {
+    resolvedInput = input;
+  } else {
+    const previousLineup = await previousLineupPromise;
+
+    if (!previousLineup) {
+      throw new AppError(404, "No previous lineup found to copy.");
+    }
+
+    resolvedInput = {
+      playerIds: previousLineup.players.map(({ playerId }) => playerId),
+      captainId: previousLineup.captainId,
+    };
+  }
+
+  const [{ playerIds }, previousLineup, activeChip] = await Promise.all([
+    validateSelectedPlayers(resolvedInput),
+    previousLineupPromise,
+    activeChipPromise,
+  ]);
   const previousPlayerIds = previousLineup
     ? previousLineup.players.map(({ playerId }) => playerId)
     : [];
-  const activeChip = await getActiveChipForRound(teamId, roundId);
   const transferCalculation = previousLineup
     ? calculateTransfers(previousPlayerIds, playerIds, activeChip)
     : calculateTransfers([], playerIds, activeChip);
@@ -463,80 +428,57 @@ export async function saveLineup(
     transferCalculation.transferPenalty = 0;
   }
 
-  const lineup = await prisma.$transaction(async (tx) => {
-    const savedLineup = await tx.fantasyLineup.upsert({
-      where: {
-        fantasyTeamId_roundId: {
-          fantasyTeamId: teamId,
-          roundId,
-        },
-      },
-      update: {
-        captainId: resolvedInput.captainId,
-        transfersMade: transferCalculation.transfersMade,
-        freeTransfers: transferCalculation.freeTransfers,
-        transferPenalty: transferCalculation.transferPenalty,
-      },
-      create: {
+  const transferSummaryData = {
+    fantasyTeamId: teamId,
+    roundId,
+    playersIn: transferCalculation.playersIn,
+    playersOut: transferCalculation.playersOut,
+    transfersMade: transferCalculation.transfersMade,
+    freeTransfers: transferCalculation.freeTransfers,
+    transferPenalty: transferCalculation.transferPenalty,
+    wildcardActive: transferCalculation.wildcardActive,
+  };
+  const lineup = await prisma.fantasyLineup.upsert({
+    where: {
+      fantasyTeamId_roundId: {
         fantasyTeamId: teamId,
         roundId,
-        captainId: resolvedInput.captainId,
-        transfersMade: transferCalculation.transfersMade,
-        freeTransfers: transferCalculation.freeTransfers,
-        transferPenalty: transferCalculation.transferPenalty,
       },
-    });
-
-    await tx.fantasyLineupPlayer.deleteMany({
-      where: { lineupId: savedLineup.id },
-    });
-
-    await tx.fantasyLineupPlayer.createMany({
-      data: playerIds.map((playerId) => ({
-        lineupId: savedLineup.id,
-        playerId,
-      })),
-    });
-
-    await tx.lineupTransferSummary.upsert({
-      where: {
-        fantasyTeamId_roundId: {
-          fantasyTeamId: teamId,
-          roundId,
+    },
+    update: {
+      captainId: resolvedInput.captainId,
+      transfersMade: transferCalculation.transfersMade,
+      freeTransfers: transferCalculation.freeTransfers,
+      transferPenalty: transferCalculation.transferPenalty,
+      players: {
+        deleteMany: {},
+        create: playerIds.map((playerId) => ({ playerId })),
+      },
+      transferSummary: {
+        upsert: {
+          update: transferSummaryData,
+          create: transferSummaryData,
         },
       },
-      update: {
-        lineupId: savedLineup.id,
-        playersIn: transferCalculation.playersIn,
-        playersOut: transferCalculation.playersOut,
-        transfersMade: transferCalculation.transfersMade,
-        freeTransfers: transferCalculation.freeTransfers,
-        transferPenalty: transferCalculation.transferPenalty,
-        wildcardActive: transferCalculation.wildcardActive,
+    },
+    create: {
+      fantasyTeamId: teamId,
+      roundId,
+      captainId: resolvedInput.captainId,
+      transfersMade: transferCalculation.transfersMade,
+      freeTransfers: transferCalculation.freeTransfers,
+      transferPenalty: transferCalculation.transferPenalty,
+      players: {
+        create: playerIds.map((playerId) => ({ playerId })),
       },
-      create: {
-        fantasyTeamId: teamId,
-        roundId,
-        lineupId: savedLineup.id,
-        playersIn: transferCalculation.playersIn,
-        playersOut: transferCalculation.playersOut,
-        transfersMade: transferCalculation.transfersMade,
-        freeTransfers: transferCalculation.freeTransfers,
-        transferPenalty: transferCalculation.transferPenalty,
-        wildcardActive: transferCalculation.wildcardActive,
+      transferSummary: {
+        create: transferSummaryData,
       },
-    });
-
-    return savedLineup;
+    },
+    include: lineupDetailsInclude,
   });
 
-  const lineupWithDetails = await getLineupWithDetails(lineup.id);
-
-  if (!lineupWithDetails) {
-    throw new AppError(500, "Saved lineup could not be loaded.");
-  }
-
-  return toLineupResponse(lineupWithDetails);
+  return toLineupResponse(lineup);
 }
 
 export async function getLineup(
@@ -550,20 +492,10 @@ export async function getLineup(
     return toHiddenLineupResponse(fantasyTeam, round);
   }
 
-  const lineup = await prisma.fantasyLineup.findUnique({
-    where: {
-      fantasyTeamId_roundId: {
-        fantasyTeamId: teamId,
-        roundId,
-      },
-    },
-  });
-
-  if (!lineup) {
-    throw new AppError(404, "Lineup not found.");
-  }
-
-  const lineupWithDetails = await getLineupWithDetails(lineup.id);
+  const lineupWithDetails = await getLineupByTeamAndRoundWithDetails(
+    teamId,
+    roundId,
+  );
 
   if (!lineupWithDetails) {
     throw new AppError(404, "Lineup not found.");
@@ -591,6 +523,7 @@ export async function getPermittedLineupsForTeam(
       fantasyTeamId,
       ...(query.roundId ? { roundId: query.roundId } : {}),
     },
+    relationLoadStrategy: "join",
     include: {
       fantasyTeam: {
         include: {
@@ -647,57 +580,45 @@ export async function getPermittedLineupsForTeam(
 export async function getMyCurrentLineup(
   requestingUserId: string,
 ): Promise<CurrentUserLineupResponse> {
-  const activeSeason = await prisma.season.findFirst({
-    where: { active: true },
-    orderBy: { startDate: "desc" },
-  });
-
-  if (!activeSeason) {
-    throw new AppError(404, "No active season found.");
-  }
-
-  const round = await prisma.round.findFirst({
-    where: {
-      seasonId: activeSeason.id,
-      status: "UPCOMING",
-      deadline: { gt: new Date() },
-    },
-    orderBy: [{ deadline: "asc" }, { roundNumber: "asc" }],
-  });
+  const now = new Date();
+  const [round, fantasyTeam] = await Promise.all([
+    prisma.round.findFirst({
+      where: {
+        season: { active: true },
+        status: "UPCOMING",
+        deadline: { gt: now },
+      },
+      orderBy: [
+        { season: { startDate: "desc" } },
+        { deadline: "asc" },
+        { roundNumber: "asc" },
+      ],
+    }),
+    prisma.fantasyTeam.findFirst({
+      where: {
+        userId: requestingUserId,
+        season: { active: true },
+      },
+      orderBy: { season: { startDate: "desc" } },
+    }),
+  ]);
 
   if (!round) {
     throw new AppError(404, "No current editable round found.");
   }
 
-  const fantasyTeam = await prisma.fantasyTeam.findUnique({
-    where: {
-      userId_seasonId: {
-        userId: requestingUserId,
-        seasonId: activeSeason.id,
-      },
-    },
-  });
-
   if (!fantasyTeam) {
     throw new AppError(404, "Fantasy team not found.");
   }
 
-  const lineup = await prisma.fantasyLineup.findUnique({
-    where: {
-      fantasyTeamId_roundId: {
-        fantasyTeamId: fantasyTeam.id,
-        roundId: round.id,
-      },
-    },
-  });
+  if (fantasyTeam.seasonId !== round.seasonId) {
+    throw new AppError(404, "Fantasy team not found for the active season.");
+  }
 
-  const previousLineup = lineup
-    ? null
-    : await findPreviousLineup(fantasyTeam.id, round);
-
-  const lineupWithDetails = lineup
-    ? await getLineupWithDetails(lineup.id)
-    : null;
+  const [lineupWithDetails, previousLineup] = await Promise.all([
+    getLineupByTeamAndRoundWithDetails(fantasyTeam.id, round.id),
+    findPreviousLineup(fantasyTeam.id, round),
+  ]);
 
   return {
     fantasyTeam: {
@@ -713,17 +634,36 @@ export async function getMyCurrentLineup(
       ...getRoundDeadlineState(round),
     },
     lineup: lineupWithDetails ? toLineupResponse(lineupWithDetails) : null,
-    suggestedLineup: previousLineup ? toLineupResponse(previousLineup) : null,
+    suggestedLineup:
+      !lineupWithDetails && previousLineup
+        ? toLineupResponse(previousLineup)
+        : null,
+    previousLineup: previousLineup ? toLineupResponse(previousLineup) : null,
   };
 }
 
 export async function getMyFantasyTeamStatus(
   requestingUserId: string,
 ): Promise<FantasyTeamStatusResponse> {
-  const activeSeason = await prisma.season.findFirst({
-    where: { active: true },
-    orderBy: { startDate: "desc" },
-  });
+  const now = new Date();
+  const [activeSeason, activeRounds, activeFantasyTeam] = await Promise.all([
+    prisma.season.findFirst({
+      where: { active: true },
+      orderBy: { startDate: "desc" },
+      select: { id: true },
+    }),
+    prisma.round.findMany({
+      where: { season: { active: true } },
+      orderBy: [{ roundNumber: "desc" }, { deadline: "desc" }],
+    }),
+    prisma.fantasyTeam.findFirst({
+      where: {
+        userId: requestingUserId,
+        season: { active: true },
+      },
+      orderBy: { season: { startDate: "desc" } },
+    }),
+  ]);
 
   if (!activeSeason) {
     return {
@@ -744,28 +684,24 @@ export async function getMyFantasyTeamStatus(
     };
   }
 
+  const seasonRounds = activeRounds.filter(
+    (round) => round.seasonId === activeSeason.id,
+  );
   const round =
-    (await prisma.round.findFirst({
-      where: {
-        seasonId: activeSeason.id,
-        status: "UPCOMING",
-        deadline: { gt: new Date() },
-      },
-      orderBy: [{ deadline: "asc" }, { roundNumber: "asc" }],
-    })) ??
-    (await prisma.round.findFirst({
-      where: { seasonId: activeSeason.id },
-      orderBy: [{ roundNumber: "desc" }, { deadline: "desc" }],
-    }));
-
-  const fantasyTeam = await prisma.fantasyTeam.findUnique({
-    where: {
-      userId_seasonId: {
-        userId: requestingUserId,
-        seasonId: activeSeason.id,
-      },
-    },
-  });
+    seasonRounds
+      .filter(
+        (candidate) =>
+          candidate.status === "UPCOMING" && candidate.deadline > now,
+      )
+      .sort(
+        (left, right) =>
+          left.deadline.getTime() - right.deadline.getTime() ||
+          left.roundNumber - right.roundNumber,
+      )[0] ?? seasonRounds[0] ?? null;
+  const fantasyTeam =
+    activeFantasyTeam?.seasonId === activeSeason.id
+      ? activeFantasyTeam
+      : null;
 
   if (!fantasyTeam) {
     return {
@@ -795,27 +731,30 @@ export async function getMyFantasyTeamStatus(
     };
   }
 
-  const lineup =
+  const [lineupWithDetails, previousLineup, chips] = await Promise.all([
     round
-      ? await prisma.fantasyLineup.findUnique({
-          where: {
-            fantasyTeamId_roundId: {
-              fantasyTeamId: fantasyTeam.id,
-              roundId: round.id,
-            },
-          },
-        })
-      : null;
-  const previousLineup =
-    round && !lineup ? await findPreviousLineup(fantasyTeam.id, round) : null;
-  const lineupWithDetails = lineup ? await getLineupWithDetails(lineup.id) : null;
-  const responseLineup = lineupWithDetails
+      ? getLineupByTeamAndRoundWithDetails(fantasyTeam.id, round.id)
+      : Promise.resolve(null),
+    round
+      ? findPreviousLineup(fantasyTeam.id, round)
+      : Promise.resolve(null),
+    getChipStatus(
+      fantasyTeam.id,
+      fantasyTeam.seasonId,
+      round?.id,
+    ),
+  ]);
+  const currentLineupResponse = lineupWithDetails
     ? toLineupResponse(lineupWithDetails)
-    : previousLineup
-      ? toLineupResponse(previousLineup)
-      : null;
-  const squadValue = responseLineup?.squadValue ?? 0;
-  const transfers = responseLineup?.transfers ?? {
+    : null;
+  const suggestedLineupResponse = previousLineup
+    ? toLineupResponse(previousLineup)
+    : null;
+  const squadValue =
+    currentLineupResponse?.squadValue ??
+    suggestedLineupResponse?.squadValue ??
+    0;
+  const transfers = currentLineupResponse?.transfers ?? {
     transfersMade: 0,
     freeTransfers: FANTASY_RULES.transfers.freePerRound,
     extraTransfers: 0,
@@ -824,10 +763,6 @@ export async function getMyFantasyTeamStatus(
     playersOut: [],
     wildcardActive: false,
   };
-  const chips = round
-    ? await getChipStatus(fantasyTeam.id, fantasyTeam.seasonId, round.id)
-    : await getChipStatus(fantasyTeam.id, fantasyTeam.seasonId);
-
   return {
     round: round
       ? {

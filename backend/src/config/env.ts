@@ -12,6 +12,9 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
   JWT_EXPIRES_IN: z.string().default("7d"),
   AUTH_COOKIE_NAME: z.string().default("fantasy_cricket_session"),
+  LOG_LEVEL: z.enum(["silent", "info", "debug"]).default("info"),
+  AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(15 * 60_000),
+  AUTH_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(10),
 });
 
 export const env = envSchema.parse(process.env);

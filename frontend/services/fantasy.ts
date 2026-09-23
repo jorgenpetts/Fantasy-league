@@ -4,6 +4,7 @@ import type {
   FantasyRules,
   Leaderboard,
   Player,
+  PlayerPerformance,
 } from "@/types/api";
 
 export function getDashboard() {
@@ -42,5 +43,29 @@ export function getPlayers(params?: {
 
   return api.get<{ players: Player[] }>(
     `/players${query.size ? `?${query}` : ""}`,
+  );
+}
+
+export function getPlayer(id: string, params?: { seasonId?: string }) {
+  const query = new URLSearchParams();
+
+  if (params?.seasonId) query.set("seasonId", params.seasonId);
+
+  return api.get<{ player: Player }>(
+    `/players/${id}${query.size ? `?${query}` : ""}`,
+  );
+}
+
+export function getPlayerPerformances(
+  id: string,
+  params?: { seasonId?: string; roundId?: string },
+) {
+  const query = new URLSearchParams();
+
+  if (params?.seasonId) query.set("seasonId", params.seasonId);
+  if (params?.roundId) query.set("roundId", params.roundId);
+
+  return api.get<{ performances: PlayerPerformance[] }>(
+    `/players/${id}/performances${query.size ? `?${query}` : ""}`,
   );
 }

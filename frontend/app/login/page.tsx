@@ -1,35 +1,104 @@
-import Link from "next/link";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+"use client";
+
+import { FormEvent, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Mail } from "lucide-react";
+import { AuthCard } from "@/components/auth/auth-card";
+import { PasswordField } from "@/components/auth/password-field";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { getApiErrorMessage, isValidEmail } from "@/lib/form-errors";
+import { getSafeNextPath } from "@/lib/routes";
+import { useAuth } from "@/hooks/use-auth";
+
+type LoginErrors = {
+  email?: string;
+  password?: string;
+  form?: string;
+};
 
 export default function LoginPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { login, refreshUser, isLoggingIn } = useAuth();
+  const [errors, setErrors] = useState<LoginErrors>({});
+  const nextPath = useMemo(
+    () => getSafeNextPath(searchParams.get("next")),
+    [searchParams],
+  );
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get("email") ?? "").trim();
+    const password = String(formData.get("password") ?? "");
+    const nextErrors: LoginErrors = {};
+
+    if (!email) {
+      nextErrors.email = "Email is required.";
+    } else if (!isValidEmail(email)) {
+      nextErrors.email = "Enter a valid email address.";
+    }
+
+    if (!password) {
+      nextErrors.password = "Password is required.";
+    }
+
+    setErrors(nextErrors);
+
+    if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
+
+    try {
+      await login({ email, password });
+      await refreshUser();
+      router.replace(nextPath);
+    } catch (error) {
+      setErrors({
+        form: getApiErrorMessage(error, "Incorrect email or password."),
+      });
+    }
+  }
+
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-8">
-      <Card className="w-full max-w-md">
-        <CardContent>
-          <p className="text-xs font-bold uppercase tracking-[0.12em] text-primary">
-            ECC Fantasy League
-          </p>
-          <h1 className="mt-2 text-2xl font-bold">Login</h1>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Form behaviour will be wired in the auth step.
-          </p>
-          <form className="mt-6 space-y-4">
-            <Input label="Email" type="email" name="email" placeholder="you@example.com" />
-            <Input label="Password" type="password" name="password" />
-            <Button type="button" className="w-full">
-              Sign in
-            </Button>
-          </form>
-          <p className="mt-5 text-sm text-muted-foreground">
-            No account yet?{" "}
-            <Link className="font-semibold text-primary hover:underline" href="/register">
-              Register
-            </Link>
-          </p>
-        </CardContent>
-      </Card>
-    </main>
+    <AuthCard
+      title="Welcome back"
+      description="Sign in with your club fantasy account to manage your team."
+      footer={{
+        text: "No account yet?",
+        href: "/register",
+        label: "Register",
+      }}
+    >
+      <form className="space-y-4" onSubmit={handleSubmit} noValidate>
+        {errors.form ? (
+          <div
+            role="alert"
+            className="rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger"
+          >
+            {errors.form}
+          </div>
+        ) : null}
+        <Input
+          label="Email"
+          type="email"
+          name="email"
+          placeholder="you@example.com"
+          autoComplete="email"
+          error={errors.email}
+          required
+        />
+        <PasswordField
+          label="Password"
+          name="password"
+          autoComplete="current-password"
+          error={errors.password}
+        />
+        <Button type="submit" className="w-full" isLoading={isLoggingIn} icon={<Mail />}>
+          Sign in
+        </Button>
+      </form>
+    </AuthCard>
   );
 }

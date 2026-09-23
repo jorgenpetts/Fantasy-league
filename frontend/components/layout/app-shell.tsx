@@ -1,18 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   BarChart3,
+  LogOut,
   Home,
   Shield,
   Trophy,
   UserRound,
   Users,
 } from "lucide-react";
-import type { ReactNode } from "react";
-import { useCurrentUser } from "@/hooks/use-auth";
+import { Suspense, useEffect, type ReactNode } from "react";
+import { useAuth, isUnauthorized } from "@/hooks/use-auth";
+import { getSafeNextPath, isAdminRoute, isGuestRoute, isProtectedRoute } from "@/lib/routes";
+import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { AUTH_UNAUTHORIZED_EVENT } from "@/components/providers/query-provider";
+import { LoadingState } from "@/components/ui/state";
 
 const primaryNav = [
   { href: "/", label: "Home", icon: Home },
@@ -68,16 +75,106 @@ function NavLink({
 }
 
 function shouldUseBareLayout(pathname: string) {
-  return pathname === "/login" || pathname === "/register";
+  return isGuestRoute(pathname);
 }
 
-export function AppShell({ children }: { children: ReactNode }) {
+function AppShellContent({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { data } = useCurrentUser();
-  const user = data?.user;
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
+  const {
+    user,
+    isAuthenticated,
+    isLoading,
+    isAdmin,
+    authError,
+    logout,
+    isLoggingOut,
+  } = useAuth();
+  const isGuest = isGuestRoute(pathname);
+  const isProtected = isProtectedRoute(pathname);
+  const unauthorized = isUnauthorized(authError);
+
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
+    if (isProtected && !isAuthenticated) {
+      const next = encodeURIComponent(pathname);
+      router.replace(`/login?next=${next}`);
+      return;
+    }
+
+    if (isGuest && isAuthenticated && !isLoggingOut) {
+      router.replace(getSafeNextPath(searchParams.get("next")));
+      return;
+    }
+
+    if (isAdminRoute(pathname) && isAuthenticated && !isAdmin) {
+      router.replace("/");
+    }
+  }, [
+    isAdmin,
+    isAuthenticated,
+    isGuest,
+    isLoading,
+    isLoggingOut,
+    isProtected,
+    pathname,
+    router,
+    searchParams,
+  ]);
+
+  useEffect(() => {
+    function handleUnauthorized() {
+      if (isGuestRoute(pathname)) {
+        return;
+      }
+
+      queryClient.removeQueries();
+      queryClient.setQueryData(queryKeys.auth.me, null);
+      router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+    }
+
+    window.addEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
+
+    return () => {
+      window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
+    };
+  }, [pathname, queryClient, router]);
 
   if (shouldUseBareLayout(pathname)) {
+    if (isAuthenticated && !isLoggingOut) {
+      return (
+        <div className="min-h-screen bg-background p-4">
+          <LoadingState label="Checking your session" />
+        </div>
+      );
+    }
+
     return <div className="min-h-screen bg-background">{children}</div>;
+  }
+
+  if (
+    isLoading ||
+    (isProtected && !isAuthenticated && !unauthorized) ||
+    (isAdminRoute(pathname) && isAuthenticated && !isAdmin)
+  ) {
+    return (
+      <div className="min-h-screen bg-background p-4">
+        <LoadingState label="Checking your session" />
+      </div>
+    );
+  }
+
+  if (isProtected && !isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-background p-4">
+        <LoadingState label="Redirecting to login" />
+      </div>
+    );
   }
 
   return (
@@ -107,11 +204,39 @@ export function AppShell({ children }: { children: ReactNode }) {
             ) : null}
           </nav>
 
-          <div className="flex items-center gap-2 rounded-md border border-border bg-surface-muted px-3 py-2 text-sm">
-            <span className="hidden text-muted-foreground sm:inline">
-              {user ? "Signed in" : "Session"}
-            </span>
-            <span className="font-semibold">{user?.name ?? "Guest"}</span>
+          <div className="flex items-center gap-2">
+            {user?.role === "ADMIN" ? (
+              <Link
+                href="/admin"
+                className="rounded-md p-2 text-primary hover:bg-surface-muted md:hidden"
+                aria-label="Admin"
+              >
+                <Shield className="size-5" />
+              </Link>
+            ) : null}
+            <div className="hidden items-center gap-2 rounded-md border border-border bg-surface-muted px-3 py-2 text-sm sm:flex">
+              <span className="flex size-7 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
+                {user?.name
+                  .split(" ")
+                  .map((part) => part[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase()}
+              </span>
+              <span className="font-semibold">{user?.name}</span>
+              <span className="text-xs font-semibold text-muted-foreground">
+                {user?.role}
+              </span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={logout}
+              isLoading={isLoggingOut}
+              icon={<LogOut aria-hidden="true" />}
+            >
+              Logout
+            </Button>
           </div>
         </div>
       </header>
@@ -129,5 +254,19 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </nav>
     </div>
+  );
+}
+
+export function AppShell({ children }: { children: ReactNode }) {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-background p-4">
+          <LoadingState label="Checking your session" />
+        </div>
+      }
+    >
+      <AppShellContent>{children}</AppShellContent>
+    </Suspense>
   );
 }

@@ -17,7 +17,6 @@ export function verifyAuthToken(token: string): AuthTokenPayload {
     typeof payload !== "object" ||
     payload === null ||
     typeof payload.sub !== "string" ||
-    typeof payload.email !== "string" ||
     (payload.role !== "USER" && payload.role !== "ADMIN")
   ) {
     throw new Error("Invalid auth token payload");
@@ -25,7 +24,6 @@ export function verifyAuthToken(token: string): AuthTokenPayload {
 
   return {
     sub: payload.sub,
-    email: payload.email,
     role: payload.role,
   };
 }

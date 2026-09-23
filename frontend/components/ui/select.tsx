@@ -22,6 +22,7 @@ type SelectProps = {
   name?: string;
   onValueChange?: (value: string) => void;
   className?: string;
+  ariaLabel?: string;
 };
 
 export function Select({
@@ -36,6 +37,7 @@ export function Select({
   name,
   onValueChange,
   className,
+  ariaLabel,
 }: SelectProps) {
   const id = React.useId();
 
@@ -56,6 +58,7 @@ export function Select({
       >
         <SelectPrimitive.Trigger
           id={id}
+          aria-label={ariaLabel}
           aria-invalid={Boolean(error)}
           aria-describedby={error ? `${id}-error` : undefined}
           className={cn(

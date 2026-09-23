@@ -1,11 +1,9 @@
-import { PlaceholderPage } from "@/components/common/placeholder-page";
+import { PlayerProfilePage } from "@/features/players/components/player-profile-page";
 
-export default function PlayerDetailPage() {
-  return (
-    <PlaceholderPage
-      eyebrow="Player"
-      title="Player profile"
-      description="Performance history and fantasy point breakdowns will be connected here."
-    />
-  );
+export default async function PlayerDetailPage({
+  params,
+}: PageProps<"/players/[id]">) {
+  const { id } = await params;
+
+  return <PlayerProfilePage playerId={id} />;
 }

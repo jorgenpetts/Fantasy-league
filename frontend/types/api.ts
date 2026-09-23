@@ -123,6 +123,20 @@ export type FantasyTeam = {
   lineups?: Array<FantasyLineup | HiddenLineup>;
 };
 
+export type CurrentUserLineup = {
+  fantasyTeam: {
+    id: string;
+    name: string;
+  };
+  round: Pick<
+    Round,
+    "id" | "roundNumber" | "name" | "deadline" | "status" | "isLocked" | "canEdit"
+  >;
+  lineup: FantasyLineup | null;
+  suggestedLineup: FantasyLineup | null;
+  previousLineup: FantasyLineup | null;
+};
+
 export type ChipStatus = {
   active: ChipType | null;
   wildcard: {
@@ -133,6 +147,24 @@ export type ChipStatus = {
     available: boolean;
     usedRoundId: string | null;
   };
+};
+
+export type FantasyTeamStatus = {
+  round: CurrentUserLineup["round"] | null;
+  fantasyTeam: {
+    id: string;
+    name: string;
+  } | null;
+  squad: {
+    value: number;
+    budget: number;
+    remainingBudget: number;
+  };
+  transfers: Pick<
+    LineupTransferStatus,
+    "freeTransfers" | "transfersMade" | "extraTransfers" | "transferPenalty"
+  >;
+  chips: ChipStatus | null;
 };
 
 export type FantasyRules = {

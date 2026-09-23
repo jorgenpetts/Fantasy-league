@@ -22,7 +22,13 @@ export function formatCurrency(value: number) {
 }
 
 export function formatPlayerPrice(value: number) {
-  return `R${(value / 1_000_000).toFixed(1)}m`;
+  const millions = value / 1_000_000;
+  const formatted = new Intl.NumberFormat("en-ZA", {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: Number.isInteger(millions) ? 0 : 1,
+  }).format(millions);
+
+  return `R${formatted}m`;
 }
 
 export function formatPoints(value: number) {
