@@ -59,6 +59,13 @@ function validSquad(price = 10_000_000) {
 }
 
 describe("team builder draft validation", () => {
+  it("agrees at each one-rand budget boundary", () => {
+    for (const difference of [-1, 0, 1]) {
+      const squad = validSquad();
+      squad[0]!.price += difference;
+      assert.equal(validateDraft(squad, "wk", rules).isValid, difference <= 0);
+    }
+  });
   it("accepts the fixed formation at exactly R110m", () => {
     const squad = validSquad();
     const result = validateDraft(squad, "wk", rules);

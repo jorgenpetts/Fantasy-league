@@ -20,7 +20,7 @@ type LoginErrors = {
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, refreshUser, isLoggingIn } = useAuth();
+  const { login, isLoggingIn } = useAuth();
   const [errors, setErrors] = useState<LoginErrors>({});
   const nextPath = useMemo(
     () => getSafeNextPath(searchParams.get("next")),
@@ -29,6 +29,7 @@ export default function LoginPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isLoggingIn) return;
     const formData = new FormData(event.currentTarget);
     const email = String(formData.get("email") ?? "").trim();
     const password = String(formData.get("password") ?? "");
@@ -52,11 +53,10 @@ export default function LoginPage() {
 
     try {
       await login({ email, password });
-      await refreshUser();
       router.replace(nextPath);
     } catch (error) {
       setErrors({
-        form: getApiErrorMessage(error, "Incorrect email or password."),
+        form: getApiErrorMessage(error, "Unable to sign in. Please try again."),
       });
     }
   }

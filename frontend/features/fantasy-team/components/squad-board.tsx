@@ -37,7 +37,7 @@ function PlayerSlot({
     >
       <div className="flex min-w-0 items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="truncate font-bold">{getPlayerName(player)}</p>
+          <p className="font-bold">{getPlayerName(player)}</p>
           <p className="mt-1 text-sm font-semibold text-muted-foreground">
             {formatPlayerPrice(player.price)}
           </p>
@@ -108,8 +108,8 @@ export function SquadBoard({
 
         return (
           <section key={position} aria-labelledby={`squad-${position}`}>
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
                 <h3 id={`squad-${position}`} className="text-sm font-bold">
                   {playerPositionLabels[position]}
                   {rules.squad.positions[position] > 1 ? "s" : ""}

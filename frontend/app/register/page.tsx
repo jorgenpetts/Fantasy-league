@@ -22,7 +22,7 @@ type RegisterErrors = {
 export default function RegisterPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { register, refreshUser, isRegistering } = useAuth();
+  const { register, isRegistering } = useAuth();
   const [errors, setErrors] = useState<RegisterErrors>({});
   const nextPath = useMemo(
     () => getSafeNextPath(searchParams.get("next")),
@@ -31,6 +31,7 @@ export default function RegisterPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isRegistering) return;
     const formData = new FormData(event.currentTarget);
     const name = String(formData.get("name") ?? "").trim();
     const email = String(formData.get("email") ?? "").trim();
@@ -68,7 +69,6 @@ export default function RegisterPage() {
 
     try {
       await register({ name, email, password });
-      await refreshUser();
       router.replace(nextPath);
     } catch (error) {
       setErrors({

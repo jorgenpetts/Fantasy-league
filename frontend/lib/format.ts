@@ -14,16 +14,14 @@ export const roundStatusLabels: Record<RoundStatus, string> = {
 };
 
 export function formatCurrency(value: number) {
-  return new Intl.NumberFormat("en-ZA", {
-    style: "currency",
-    currency: "ZAR",
+  return `R${new Intl.NumberFormat("en-GB", {
     maximumFractionDigits: 0,
-  }).format(value);
+  }).format(value)}`;
 }
 
 export function formatPlayerPrice(value: number) {
   const millions = value / 1_000_000;
-  const formatted = new Intl.NumberFormat("en-ZA", {
+  const formatted = new Intl.NumberFormat("en-GB", {
     maximumFractionDigits: 2,
     minimumFractionDigits: Number.isInteger(millions) ? 0 : 1,
   }).format(millions);
@@ -32,7 +30,7 @@ export function formatPlayerPrice(value: number) {
 }
 
 export function formatPoints(value: number) {
-  return new Intl.NumberFormat("en-ZA").format(value);
+  return new Intl.NumberFormat("en-GB").format(value);
 }
 
 export function formatDeadline(value: string | Date) {

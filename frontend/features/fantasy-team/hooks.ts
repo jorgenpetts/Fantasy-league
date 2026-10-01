@@ -28,10 +28,10 @@ function useInvalidateTeamData() {
   const queryClient = useQueryClient();
 
   return () => {
-    void Promise.all([
+    return Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.fantasyTeam.me }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.fantasyTeam.status }),
+      queryClient.invalidateQueries({ queryKey: ["fantasy-team"] }),
+      queryClient.invalidateQueries({ queryKey: ["leaderboard"] }),
       queryClient.invalidateQueries({ queryKey: queryKeys.lineups.current }),
       queryClient.invalidateQueries({ queryKey: ["lineups", "team-round"] }),
     ]);
@@ -179,9 +179,10 @@ export function useSaveLineup(teamId: string, roundId: string) {
         refetchType: "none",
       });
       void queryClient.invalidateQueries({
-        queryKey: queryKeys.fantasyTeam.me,
+        queryKey: ["fantasy-team"],
         refetchType: "none",
       });
+      void queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
       void queryClient.invalidateQueries({
         queryKey: queryKeys.lineups.current,
         refetchType: "none",

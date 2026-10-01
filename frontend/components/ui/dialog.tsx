@@ -30,20 +30,34 @@ function DialogOverlay({
 function DialogContent({
   className,
   children,
+  onOpenAutoFocus,
+  onCloseAutoFocus,
   ...props
 }: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>) {
+  const opener = React.useRef<HTMLElement | null>(null);
   return (
     <DialogPortal>
       <DialogOverlay />
       <DialogPrimitive.Content
+        onOpenAutoFocus={(event) => {
+          opener.current = document.activeElement as HTMLElement | null;
+          onOpenAutoFocus?.(event);
+        }}
+        onCloseAutoFocus={(event) => {
+          onCloseAutoFocus?.(event);
+          if (!event.defaultPrevented && opener.current?.isConnected) {
+            event.preventDefault();
+            opener.current.focus();
+          }
+        }}
         className={cn(
-          "fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-card border border-border bg-surface shadow-soft",
+          "fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] overflow-y-auto w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-card border border-border bg-surface shadow-soft",
           className,
         )}
         {...props}
       >
         {children}
-        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-md p-1 text-muted-foreground hover:bg-surface-muted hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+        <DialogPrimitive.Close className="absolute right-2 top-2 flex size-11 items-center justify-center rounded-md text-muted-foreground hover:bg-surface-muted hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
           <X className="size-5" />
           <span className="sr-only">Close</span>
         </DialogPrimitive.Close>
@@ -58,7 +72,10 @@ function DialogHeader({
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("flex flex-col gap-1.5 border-b border-border p-5 pr-12", className)}
+      className={cn(
+        "flex flex-col gap-1.5 border-b border-border p-5 pr-16",
+        className,
+      )}
       {...props}
     />
   );

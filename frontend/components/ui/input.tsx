@@ -10,11 +10,11 @@ export function Input({ id, label, error, className, required, ...props }: Input
   const inputId = id ?? props.name;
 
   return (
-    <div className="space-y-2">
+    <div className="min-w-0 space-y-2">
       {label ? (
         <label htmlFor={inputId} className="text-sm font-semibold text-foreground">
           {label}
-          {required ? <span className="text-danger"> *</span> : null}
+          {required ? <span className="text-danger" aria-hidden="true"> *</span> : null}
         </label>
       ) : null}
       <input
@@ -23,7 +23,7 @@ export function Input({ id, label, error, className, required, ...props }: Input
         aria-invalid={Boolean(error)}
         aria-describedby={error && inputId ? `${inputId}-error` : undefined}
         className={cn(
-          "h-10 w-full rounded-md border border-border bg-surface px-3 text-sm text-foreground shadow-sm transition-colors placeholder:text-muted-foreground/70",
+          "h-11 min-w-0 w-full rounded-md border border-border bg-surface px-3 text-base sm:text-sm text-foreground shadow-sm transition-colors placeholder:text-muted-foreground/70",
           "focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-muted-foreground",
           error && "border-danger focus:border-danger focus:ring-danger/20",
           className,

@@ -91,7 +91,7 @@ export function SquadPreview({
             <section
               key={position}
               aria-labelledby={`dashboard-${position}`}
-              className="rounded-card border border-border bg-surface-muted p-3"
+              className="min-w-0 rounded-card border border-border bg-surface-muted p-3"
             >
               <h3
                 id={`dashboard-${position}`}
@@ -111,7 +111,7 @@ export function SquadPreview({
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-bold">
+                          <p className="text-sm font-bold">
                             {getPlayerName(player)}
                           </p>
                           <p className="mt-1 text-xs text-muted-foreground">

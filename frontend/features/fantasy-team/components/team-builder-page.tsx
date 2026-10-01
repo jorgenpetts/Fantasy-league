@@ -5,6 +5,7 @@ import { PageContainer, PageHeader } from "@/components/layout/page";
 import { EmptyState, ErrorState } from "@/components/ui/state";
 import { Badge } from "@/components/ui/badge";
 import { formatDeadline } from "@/lib/format";
+import { ApiError } from "@/lib/api";
 import {
   useCurrentSeason,
   useFantasyRules,
@@ -65,11 +66,14 @@ export function TeamBuilderPage() {
           description="Choose a name, then select your 11-player fantasy squad."
         />
         {seasonQuery.isLoading ? <TeamBuilderLoading /> : null}
-        {seasonQuery.isError ? (
+        {seasonQuery.error instanceof ApiError && seasonQuery.error.status === 404 ? (
           <EmptyState
             title="No active season"
             description="A fantasy team can be created once an active season is available."
           />
+        ) : null}
+        {seasonQuery.isError && !(seasonQuery.error instanceof ApiError && seasonQuery.error.status === 404) ? (
+          <ErrorState title="Unable to load the season" onRetry={() => void seasonQuery.refetch()} />
         ) : null}
         {seasonQuery.data?.season ? (
           <TeamCreation season={seasonQuery.data.season} />

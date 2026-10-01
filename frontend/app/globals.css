@@ -52,6 +52,7 @@ body {
     linear-gradient(180deg, rgb(244 247 241 / 0.96), rgb(244 247 241 / 1)),
     var(--background);
   color: var(--foreground);
+  overflow-wrap: anywhere;
 }
 
 button,

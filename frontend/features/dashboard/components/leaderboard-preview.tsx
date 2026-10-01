@@ -45,7 +45,7 @@ export function LeaderboardPreview({
                   key={entry.fantasyTeamId}
                   href={isCurrentTeam ? "/team" : `/team/${entry.fantasyTeamId}`}
                   className={cn(
-                    "grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-md border p-3 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                    "grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-md border p-3 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                     isCurrentTeam
                       ? "border-primary/30 bg-primary/10"
                       : "border-border bg-surface-muted hover:border-primary/40 hover:bg-background",
@@ -53,14 +53,14 @@ export function LeaderboardPreview({
                 >
                   <span className="text-sm font-black">#{entry.rank}</span>
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-bold">
+                    <span className="block text-sm font-bold">
                       {entry.fantasyTeamName}
                     </span>
                     <span className="block truncate text-xs text-muted-foreground">
                       {isCurrentTeam ? "You" : entry.managerName}
                     </span>
                   </span>
-                  <span className="text-right text-sm font-black">
+                  <span className="col-start-2 text-sm font-black">
                     {formatPoints(entry.totalPoints)} pts
                   </span>
                 </Link>

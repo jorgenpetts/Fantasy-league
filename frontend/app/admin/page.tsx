@@ -1,11 +1,5 @@
-import { PlaceholderPage } from "@/components/common/placeholder-page";
+import { AdminOverview } from "@/features/admin/components/admin-overview";
 
 export default function AdminPage() {
-  return (
-    <PlaceholderPage
-      eyebrow="Admin"
-      title="Admin dashboard"
-      description="Admin routes are staged for player, round, and performance workflows."
-    />
-  );
+  return <AdminOverview />;
 }

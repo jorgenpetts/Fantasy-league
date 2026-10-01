@@ -1,11 +1,5 @@
-import { PlaceholderPage } from "@/components/common/placeholder-page";
+import { RoundsManagement } from "@/features/admin/components/rounds-management";
 
 export default function AdminRoundsPage() {
-  return (
-    <PlaceholderPage
-      eyebrow="Admin"
-      title="Manage rounds"
-      description="Round deadlines, statuses, and finalisation controls will be added later."
-    />
-  );
+  return <RoundsManagement />;
 }

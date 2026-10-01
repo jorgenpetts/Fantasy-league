@@ -79,10 +79,7 @@ export function TeamBuilder({
     { position: marketFilter, search: deferredSearch, sort },
     editable,
   );
-  const saveMutation = useSaveLineup(
-    status.fantasyTeam!.id,
-    status.round!.id,
-  );
+  const saveMutation = useSaveLineup(status.fantasyTeam!.id, status.round!.id);
   const { showToast } = useToast();
 
   const marketPlayers = useMemo(
@@ -126,7 +123,7 @@ export function TeamBuilder({
     [draftPlayers],
   );
   const replacementCredit = target?.playerId
-    ? draftPlayers.find((player) => player.id === target.playerId)?.price ?? 0
+    ? (draftPlayers.find((player) => player.id === target.playerId)?.price ?? 0)
     : 0;
 
   useEffect(() => {
@@ -143,7 +140,9 @@ export function TeamBuilder({
   function openPicker(nextTarget: PickerTarget) {
     setTarget(nextTarget);
     setSearch("");
-    setMarketOpen(true);
+    const useDrawer = window.matchMedia("(max-width: 1279px)").matches;
+    setMarketOpen(useDrawer);
+    if (!useDrawer) document.getElementById("desktop-player-search")?.focus();
   }
 
   function browsePlayers() {
@@ -154,7 +153,7 @@ export function TeamBuilder({
   }
 
   function selectPlayer(player: Player) {
-    if (selectedIds.has(player.id) || !player.active) return;
+    if (!editable || selectedIds.has(player.id) || !player.active) return;
 
     if (target) {
       if (player.position !== target.position) return;
@@ -183,7 +182,7 @@ export function TeamBuilder({
   }
 
   async function saveDraft() {
-    if (!captainId || !validation.isValid || !editable) return;
+    if (!captainId || !validation.isValid || !editable || saveMutation.isPending) return;
     setSaveError(undefined);
 
     try {
@@ -199,10 +198,17 @@ export function TeamBuilder({
         variant: "success",
       });
     } catch (error) {
-      const message = getApiErrorMessage(error, "Your team could not be saved.");
+      const message = getApiErrorMessage(
+        error,
+        "Your team could not be saved.",
+      );
       setSaveError(message);
       setSaveConfirmationOpen(false);
-      showToast({ title: "Team not saved", description: message, variant: "error" });
+      showToast({
+        title: "Team not saved",
+        description: message,
+        variant: "error",
+      });
       onAuthorityChange();
     }
   }
@@ -252,22 +258,33 @@ export function TeamBuilder({
       />
 
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(340px,0.75fr)]">
-        <div className="space-y-5">
+        <div className="min-w-0 space-y-5">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-3">
+            <CardHeader className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-bold">Current Squad</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {!editable && !lineupState.lineup
                     ? "Showing your latest saved squad."
                     : lineupState.lineup
-                    ? "Your saved lineup for this round."
-                    : lineupState.suggestedLineup
-                      ? "Carried forward from your previous round. Save to confirm it."
-                      : "Fill every positional slot, then choose a captain."}
+                      ? "Your saved lineup for this round."
+                      : lineupState.suggestedLineup
+                        ? "Carried forward from your previous round. Save to confirm it."
+                        : "Fill every positional slot, then choose a captain."}
                 </p>
               </div>
-              {isDirty && editable ? <Badge tone="warning">Unsaved changes</Badge> : null}
+              {editable ? (
+                <Button
+                  className="xl:hidden"
+                  onClick={browsePlayers}
+                  icon={<Search />}
+                >
+                  Browse Players
+                </Button>
+              ) : null}
+              {isDirty && editable ? (
+                <Badge tone="warning">Unsaved changes</Badge>
+              ) : null}
             </CardHeader>
             <CardContent className="space-y-5">
               <SquadBoard
@@ -288,14 +305,21 @@ export function TeamBuilder({
                     overBudgetBy={Math.max(0, -validation.remainingBudget)}
                   />
                   {saveError ? (
-                    <p className="text-sm font-semibold text-danger" role="alert">
+                    <p
+                      className="text-sm font-semibold text-danger"
+                      role="alert"
+                    >
                       {saveError}
                     </p>
                   ) : null}
-                  <div className="sticky bottom-20 z-10 flex flex-col gap-3 rounded-md border border-border bg-surface/95 p-3 shadow-soft backdrop-blur sm:flex-row sm:items-center sm:justify-between md:bottom-4">
+                  <div
+                    className={`flex flex-col gap-3 rounded-md border border-border bg-surface/95 p-3 shadow-soft backdrop-blur sm:flex-row sm:items-center sm:justify-between ${isDirty ? "sticky bottom-[calc(5rem+env(safe-area-inset-bottom))] z-10 xl:bottom-4" : ""}`}
+                  >
                     <div className="text-sm">
                       <p className="font-bold">
-                        {validation.isValid ? "Ready to save" : "Complete your squad to save"}
+                        {validation.isValid
+                          ? "Ready to save"
+                          : "Complete your squad to save"}
                       </p>
                       <p className="text-muted-foreground">
                         {projectedTransfers.transferPenalty > 0
@@ -317,15 +341,23 @@ export function TeamBuilder({
                 <div className="grid gap-3 rounded-md bg-surface-muted p-4 text-sm sm:grid-cols-3">
                   <div>
                     <span className="text-muted-foreground">Round points</span>
-                    <p className="mt-1 font-black">{sourceLineup.roundPoints} pts</p>
+                    <p className="mt-1 font-black">
+                      {sourceLineup.roundPoints} pts
+                    </p>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Gross points</span>
-                    <p className="mt-1 font-black">{sourceLineup.grossPoints} pts</p>
+                    <p className="mt-1 font-black">
+                      {sourceLineup.grossPoints} pts
+                    </p>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Transfer deduction</span>
-                    <p className="mt-1 font-black">-{sourceLineup.transfers.transferPenalty} pts</p>
+                    <span className="text-muted-foreground">
+                      Transfer deduction
+                    </span>
+                    <p className="mt-1 font-black">
+                      -{sourceLineup.transfers.transferPenalty} pts
+                    </p>
                   </div>
                 </div>
               ) : null}
@@ -336,20 +368,44 @@ export function TeamBuilder({
             <CardContent className="space-y-5">
               <div className="grid gap-4 sm:grid-cols-4">
                 <div>
-                  <p className="text-xs font-bold uppercase text-muted-foreground">Free transfers</p>
-                  <p className="mt-1 text-lg font-black">{projectedTransfers.freeTransfers}</p>
+                  <p className="text-xs font-bold uppercase text-muted-foreground">
+                    Free transfers
+                  </p>
+                  <p className="mt-1 text-lg font-black">
+                    {projectedTransfers.freeTransfers}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-xs font-bold uppercase text-muted-foreground">Transfers made</p>
-                  <p className="mt-1 text-lg font-black">{isDirty ? projectedTransfers.transfersMade : status.transfers.transfersMade}</p>
+                  <p className="text-xs font-bold uppercase text-muted-foreground">
+                    Transfers made
+                  </p>
+                  <p className="mt-1 text-lg font-black">
+                    {isDirty
+                      ? projectedTransfers.transfersMade
+                      : status.transfers.transfersMade}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-xs font-bold uppercase text-muted-foreground">Extra transfers</p>
-                  <p className="mt-1 text-lg font-black">{isDirty ? projectedTransfers.extraTransfers : status.transfers.extraTransfers}</p>
+                  <p className="text-xs font-bold uppercase text-muted-foreground">
+                    Extra transfers
+                  </p>
+                  <p className="mt-1 text-lg font-black">
+                    {isDirty
+                      ? projectedTransfers.extraTransfers
+                      : status.transfers.extraTransfers}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-xs font-bold uppercase text-muted-foreground">Deduction</p>
-                  <p className="mt-1 text-lg font-black">-{isDirty ? projectedTransfers.transferPenalty : status.transfers.transferPenalty} pts</p>
+                  <p className="text-xs font-bold uppercase text-muted-foreground">
+                    Deduction
+                  </p>
+                  <p className="mt-1 text-lg font-black">
+                    -
+                    {isDirty
+                      ? projectedTransfers.transferPenalty
+                      : status.transfers.transferPenalty}{" "}
+                    pts
+                  </p>
                 </div>
               </div>
 
@@ -367,24 +423,14 @@ export function TeamBuilder({
         </div>
 
         {editable ? (
-          <Card className="sticky top-20 hidden max-h-[calc(100vh-6rem)] overflow-hidden xl:block">
+          <Card className="sticky top-20 hidden h-[calc(100dvh-6rem)] overflow-hidden xl:block">
             {market("desktop")}
           </Card>
         ) : null}
       </div>
 
-      {editable ? (
-        <Button
-          className="fixed bottom-20 right-4 z-20 shadow-soft xl:hidden"
-          onClick={browsePlayers}
-          icon={<Search />}
-        >
-          Browse Players
-        </Button>
-      ) : null}
-
-      <DialogRoot open={marketOpen} onOpenChange={setMarketOpen}>
-        <DialogContent className="h-[calc(100%-1rem)] max-h-none max-w-none overflow-hidden p-0 sm:h-[calc(100%-2rem)] sm:max-w-2xl xl:hidden">
+      <DialogRoot open={marketOpen && editable} onOpenChange={setMarketOpen}>
+        <DialogContent className="h-[calc(100dvh-2rem)] max-h-none max-w-none overflow-hidden p-0 sm:max-w-2xl">
           <DialogHeader className="sr-only">
             <DialogTitle>Player Market</DialogTitle>
             <DialogDescription>

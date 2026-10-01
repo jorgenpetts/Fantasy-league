@@ -1,11 +1,7 @@
-import { PlaceholderPage } from "@/components/common/placeholder-page";
+import { Suspense } from "react";
+import { PerformancePage } from "@/features/admin/performances/performance-page";
+import { AdminListLoading } from "@/features/admin/components/admin-data-list";
 
 export default function AdminPerformancesPage() {
-  return (
-    <PlaceholderPage
-      eyebrow="Admin"
-      title="Enter performances"
-      description="Bulk player-performance entry and recalculation controls will be added later."
-    />
-  );
+  return <Suspense fallback={<AdminListLoading />}><PerformancePage /></Suspense>;
 }

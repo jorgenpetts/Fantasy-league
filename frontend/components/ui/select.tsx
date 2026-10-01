@@ -42,7 +42,7 @@ export function Select({
   const id = React.useId();
 
   return (
-    <div className="space-y-2">
+    <div className="min-w-0 space-y-2">
       {label ? (
         <label htmlFor={id} className="text-sm font-semibold text-foreground">
           {label}
@@ -62,7 +62,7 @@ export function Select({
           aria-invalid={Boolean(error)}
           aria-describedby={error ? `${id}-error` : undefined}
           className={cn(
-            "flex h-10 w-full items-center justify-between rounded-md border border-border bg-surface px-3 text-sm text-foreground shadow-sm transition-colors",
+            "flex min-h-11 min-w-0 w-full gap-2 py-2 [&>span:first-child]:truncate items-center justify-between rounded-md border border-border bg-surface px-3 text-sm text-foreground shadow-sm transition-colors",
             "focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-muted-foreground",
             "data-[placeholder]:text-muted-foreground/70",
             error && "border-danger focus:border-danger focus:ring-danger/20",
@@ -71,12 +71,12 @@ export function Select({
         >
           <SelectPrimitive.Value placeholder={placeholder} />
           <SelectPrimitive.Icon asChild>
-            <ChevronDown className="size-4 text-muted-foreground" />
+            <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
           </SelectPrimitive.Icon>
         </SelectPrimitive.Trigger>
         <SelectPrimitive.Portal>
           <SelectPrimitive.Content
-            className="z-50 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-card border border-border bg-surface text-foreground shadow-soft"
+            className="z-50 w-[var(--radix-select-trigger-width)] max-w-[calc(100vw-2rem)] max-h-[var(--radix-select-content-available-height)] overflow-hidden rounded-card border border-border bg-surface text-foreground shadow-soft"
             position="popper"
             sideOffset={6}
           >
@@ -85,7 +85,7 @@ export function Select({
                 <SelectPrimitive.Item
                   key={option.value}
                   value={option.value}
-                  className="relative flex cursor-default select-none items-center rounded-md py-2 pl-8 pr-3 text-sm outline-none focus:bg-surface-muted data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                  className="relative flex min-h-11 cursor-default select-none items-center rounded-md py-2 pl-8 pr-3 text-sm outline-none focus:bg-surface-muted data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
                 >
                   <span className="absolute left-2 flex size-4 items-center justify-center">
                     <SelectPrimitive.ItemIndicator>

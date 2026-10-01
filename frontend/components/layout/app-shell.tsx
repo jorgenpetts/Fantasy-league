@@ -13,13 +13,12 @@ import {
   Users,
 } from "lucide-react";
 import { Suspense, useEffect, type ReactNode } from "react";
-import { useAuth, isUnauthorized } from "@/hooks/use-auth";
+import { useAuth, isUnauthorized, clearUserSpecificCache } from "@/hooks/use-auth";
 import { getSafeNextPath, isAdminRoute, isGuestRoute, isProtectedRoute } from "@/lib/routes";
-import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { AUTH_UNAUTHORIZED_EVENT } from "@/components/providers/query-provider";
-import { LoadingState } from "@/components/ui/state";
+import { ErrorState, LoadingState } from "@/components/ui/state";
 
 const primaryNav = [
   { href: "/", label: "Home", icon: Home },
@@ -61,7 +60,7 @@ function NavLink({
     <Link
       href={href}
       className={cn(
-        "inline-flex items-center gap-2 rounded-md text-sm font-semibold transition-colors",
+        "inline-flex min-h-11 items-center gap-2 rounded-md text-sm font-semibold transition-colors",
         compact ? "flex-col gap-1 px-2 py-2 text-xs" : "px-3 py-2",
         active
           ? "bg-primary text-primary-foreground"
@@ -91,6 +90,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
     authError,
     logout,
     isLoggingOut,
+    refreshUser,
   } = useAuth();
   const isGuest = isGuestRoute(pathname);
   const isProtected = isProtectedRoute(pathname);
@@ -101,8 +101,8 @@ function AppShellContent({ children }: { children: ReactNode }) {
       return;
     }
 
-    if (isProtected && !isAuthenticated) {
-      const next = encodeURIComponent(pathname);
+    if (isProtected && !isAuthenticated && (!authError || unauthorized)) {
+      const next = encodeURIComponent(pathname + (searchParams.size ? `?${searchParams}` : ""));
       router.replace(`/login?next=${next}`);
       return;
     }
@@ -113,7 +113,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
     }
 
     if (isAdminRoute(pathname) && isAuthenticated && !isAdmin) {
-      router.replace("/");
+      router.replace("/403");
     }
   }, [
     isAdmin,
@@ -125,6 +125,8 @@ function AppShellContent({ children }: { children: ReactNode }) {
     pathname,
     router,
     searchParams,
+    authError,
+    unauthorized,
   ]);
 
   useEffect(() => {
@@ -133,9 +135,9 @@ function AppShellContent({ children }: { children: ReactNode }) {
         return;
       }
 
-      queryClient.removeQueries();
-      queryClient.setQueryData(queryKeys.auth.me, null);
-      router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+      clearUserSpecificCache(queryClient);
+      const next = pathname + (searchParams.size ? `?${searchParams}` : "");
+      router.replace(`/login?next=${encodeURIComponent(next)}`);
     }
 
     window.addEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
@@ -143,7 +145,19 @@ function AppShellContent({ children }: { children: ReactNode }) {
     return () => {
       window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
     };
-  }, [pathname, queryClient, router]);
+  }, [pathname, queryClient, router, searchParams]);
+
+  if (isProtected && authError && !unauthorized) {
+    return (
+      <main className="min-h-screen bg-background p-4">
+        <ErrorState
+          title="Unable to verify your account"
+          description="Please try again to reconnect to the fantasy league."
+          onRetry={() => void refreshUser()}
+        />
+      </main>
+    );
+  }
 
   if (shouldUseBareLayout(pathname)) {
     if (isAuthenticated && !isLoggingOut) {
@@ -177,12 +191,14 @@ function AppShellContent({ children }: { children: ReactNode }) {
     );
   }
 
+  if (isAdminRoute(pathname)) return <>{children}</>;
+
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-0">
+    <div className="min-h-screen bg-background pb-[calc(5rem+env(safe-area-inset-bottom))] xl:pb-0">
       <header className="sticky top-0 z-30 border-b border-border bg-surface/95 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-2 py-2 px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex min-w-0 items-center gap-3">
-            <span className="flex size-9 items-center justify-center rounded-md bg-primary text-sm font-black text-primary-foreground">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-black text-primary-foreground">
               ECC
             </span>
             <span className="min-w-0">
@@ -195,7 +211,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
             </span>
           </Link>
 
-          <nav className="hidden items-center gap-1 md:flex" aria-label="Primary">
+          <nav className="hidden items-center gap-1 xl:flex" aria-label="Primary">
             {primaryNav.map((item) => (
               <NavLink key={item.href} {...item} />
             ))}
@@ -204,18 +220,18 @@ function AppShellContent({ children }: { children: ReactNode }) {
             ) : null}
           </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             {user?.role === "ADMIN" ? (
               <Link
                 href="/admin"
-                className="rounded-md p-2 text-primary hover:bg-surface-muted md:hidden"
+                className="rounded-md flex size-11 shrink-0 items-center justify-center text-primary hover:bg-surface-muted xl:hidden"
                 aria-label="Admin"
               >
                 <Shield className="size-5" />
               </Link>
             ) : null}
-            <div className="hidden items-center gap-2 rounded-md border border-border bg-surface-muted px-3 py-2 text-sm sm:flex">
-              <span className="flex size-7 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
+            <div className="hidden min-w-0 max-w-52 items-center gap-2 rounded-md border border-border bg-surface-muted px-3 py-2 text-sm sm:flex">
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
                 {user?.name
                   .split(" ")
                   .map((part) => part[0])
@@ -223,8 +239,8 @@ function AppShellContent({ children }: { children: ReactNode }) {
                   .slice(0, 2)
                   .toUpperCase()}
               </span>
-              <span className="font-semibold">{user?.name}</span>
-              <span className="text-xs font-semibold text-muted-foreground">
+              <span className="truncate font-semibold" title={user?.name}>{user?.name}</span>
+              <span className="shrink-0 whitespace-nowrap text-xs font-semibold text-muted-foreground">
                 {user?.role}
               </span>
             </div>
@@ -244,7 +260,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
       {children}
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface px-2 pb-[env(safe-area-inset-bottom)] md:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface px-2 pb-[env(safe-area-inset-bottom)] xl:hidden"
         aria-label="Mobile primary"
       >
         <div className="mx-auto grid max-w-md grid-cols-4">

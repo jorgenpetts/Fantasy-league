@@ -80,6 +80,7 @@ export function HistoricalLineupPage({ roundId }: { roundId: string }) {
             void statusQuery.refetch();
             void lineupsQuery.refetch();
             void performanceQuery.refetch();
+            void rulesQuery.refetch();
           }}
         />
       </PageContainer>
@@ -193,7 +194,7 @@ export function HistoricalLineupPage({ roundId }: { roundId: string }) {
               <SectionHeader title="Points breakdown" />
               <dl className="space-y-3 text-sm">
                 <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Player points</dt><dd className="font-bold">{formatPoints(basePoints)} pts</dd></div>
-                <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Captain bonus</dt><dd className="font-bold text-success">+{formatPoints(captainBonus)} pts</dd></div>
+                <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Captain bonus</dt><dd className={captainBonus < 0 ? "font-bold text-danger" : "font-bold text-success"}>{captainBonus > 0 ? "+" : ""}{formatPoints(captainBonus)} pts</dd></div>
                 <div className="flex justify-between gap-4 border-t border-border pt-3"><dt className="font-semibold">Backend gross points</dt><dd className="font-black">{formatPoints(lineup.grossPoints)} pts</dd></div>
                 <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Transfer penalty</dt><dd className={lineup.transfers.transferPenalty ? "font-bold text-danger" : "font-bold"}>{lineup.transfers.transferPenalty ? `-${formatPoints(lineup.transfers.transferPenalty)}` : "0"} pts</dd></div>
                 <div className="flex justify-between gap-4 border-t border-border pt-3 text-base"><dt className="font-bold">Final round points</dt><dd className="font-black">{formatPoints(lineup.roundPoints)} pts</dd></div>

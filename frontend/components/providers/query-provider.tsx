@@ -31,7 +31,8 @@ export function QueryProvider({ children }: { children: ReactNode }) {
         }),
         defaultOptions: {
           queries: {
-            retry: 1,
+            retry: (failureCount, error) =>
+              !(error instanceof ApiError && [401, 403, 404].includes(error.status)) && failureCount < 1,
             staleTime: 30_000,
             refetchOnWindowFocus: false,
           },

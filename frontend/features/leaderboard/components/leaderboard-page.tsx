@@ -107,7 +107,7 @@ function CurrentUserSummary({
   return (
     <Card className="border-primary/25 bg-primary/5">
       <CardContent>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <UserRound className="size-5 text-primary" aria-hidden="true" />
           <h2 className="font-bold">Your Position</h2>
         </div>
@@ -159,11 +159,11 @@ function LeaderboardRows({
 }) {
   return (
     <>
-      <div className="hidden overflow-hidden rounded-md border border-border md:block">
-        <table className="w-full border-collapse text-left text-sm">
+      <div className="hidden overflow-hidden rounded-md border border-border lg:block">
+        <table className="w-full table-fixed border-collapse text-left text-sm">
           <thead className="bg-surface-muted text-xs uppercase text-muted-foreground">
             <tr>
-              <th className="px-4 py-3" scope="col">Rank</th>
+              <th className="w-24 px-4 py-3" scope="col">Rank</th>
               <th className="px-4 py-3" scope="col">Fantasy Team</th>
               <th className="px-4 py-3" scope="col">Manager</th>
               {mode === "round" ? <th className="px-4 py-3 text-right" scope="col">Round Points</th> : null}
@@ -197,7 +197,7 @@ function LeaderboardRows({
         </table>
       </div>
 
-      <ol className="space-y-2 md:hidden">
+      <ol className="space-y-2 lg:hidden">
         {entries.map((entry) => {
           const isCurrentTeam = entry.fantasyTeamId === currentTeamId;
           return (
@@ -205,19 +205,19 @@ function LeaderboardRows({
               <Link
                 href={getLeaderboardTeamHref(entry.fantasyTeamId, currentTeamId)}
                 className={cn(
-                  "grid min-h-20 grid-cols-[auto_1fr_auto] items-center gap-3 rounded-md border border-border p-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                  "grid min-h-20 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-md border border-border p-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                   isCurrentTeam ? "border-primary/30 bg-primary/5" : "bg-surface hover:border-primary/40",
                 )}
               >
                 <RankMark rank={entry.rank} />
                 <span className="min-w-0">
-                  <span className="flex items-center gap-2">
-                    <span className="truncate font-bold">{entry.fantasyTeamName}</span>
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="font-bold">{entry.fantasyTeamName}</span>
                     {isCurrentTeam ? <Badge tone="primary">You</Badge> : null}
                   </span>
                   <span className="block truncate text-sm text-muted-foreground">{entry.managerName}</span>
                 </span>
-                <span className="text-right">
+                <span className="col-start-2 flex flex-wrap items-center gap-x-3 gap-y-1">
                   {mode === "round" ? (
                     <span className="block font-black">{formatPoints(entry.roundPoints ?? 0)} pts</span>
                   ) : null}
@@ -318,7 +318,7 @@ export function LeaderboardPage() {
         <div className="mb-5 max-w-sm">
           <Select
             label="Select Round"
-            value={selectedRound?.id}
+            value={selectedRound?.id ?? ""}
             placeholder={roundsLoading ? "Loading rounds..." : "Select a round"}
             disabled={roundsLoading || rounds.length === 0}
             options={[...rounds]
@@ -369,7 +369,7 @@ export function LeaderboardPage() {
           ) : (
             <Card>
               <CardHeader className="flex flex-row items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {mode === "overall" ? <Trophy className="size-5 text-primary" aria-hidden="true" /> : <Medal className="size-5 text-primary" aria-hidden="true" />}
                   <h2 className="font-bold">{mode === "overall" ? "Overall Standings" : "Round Standings"}</h2>
                 </div>

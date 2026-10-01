@@ -47,7 +47,7 @@ export function ChipControls({
   const { showToast } = useToast();
 
   async function confirmAction() {
-    if (!confirmation) return;
+    if (!confirmation || !editable || activateMutation.isPending || removeMutation.isPending) return;
 
     try {
       if (confirmation.action === "activate") {

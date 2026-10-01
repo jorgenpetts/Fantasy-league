@@ -1,11 +1,5 @@
-import { PlaceholderPage } from "@/components/common/placeholder-page";
+import { PlayersManagement } from "@/features/admin/components/players-management";
 
 export default function AdminPlayersPage() {
-  return (
-    <PlaceholderPage
-      eyebrow="Admin"
-      title="Manage players"
-      description="Player create, edit, price, and active-state controls will be added later."
-    />
-  );
+  return <PlayersManagement />;
 }

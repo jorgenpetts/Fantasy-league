@@ -1,6 +1,6 @@
 "use client";
 
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-keys";
 import {
   getPlayer,
@@ -27,7 +27,6 @@ export function usePlayers(filters: PlayerFilters, enabled = true) {
   return useQuery({
     queryKey: queryKeys.players(apiFilters),
     queryFn: () => getPlayers(apiFilters),
-    placeholderData: keepPreviousData,
     enabled,
   });
 }

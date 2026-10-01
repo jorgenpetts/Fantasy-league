@@ -74,8 +74,8 @@ export function PlayerMarket({
     : "Browse available players";
 
   return (
-    <div className="flex min-h-0 flex-col">
-      <div className="border-b border-border p-4 sm:p-5">
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="max-h-[60%] shrink-0 overflow-y-auto border-b border-border p-4 sm:p-5">
         <h2 className="text-lg font-bold">Player Market</h2>
         <p className="mt-1 text-sm text-muted-foreground">{contextLabel}</p>
 
@@ -104,7 +104,7 @@ export function PlayerMarket({
         </div>
 
         {target ? (
-          <div className="mt-3 flex items-center justify-between rounded-md bg-surface-muted px-3 py-2 text-sm">
+          <div className="mt-3 flex flex-wrap gap-2 items-center justify-between rounded-md bg-surface-muted px-3 py-2 text-sm">
             <span className="font-semibold">
               {playerPositionLabels[target.position]} only
             </span>
@@ -118,7 +118,7 @@ export function PlayerMarket({
               type="button"
               onClick={() => onPositionChange(undefined)}
               className={cn(
-                "shrink-0 rounded-md border px-3 py-2 text-xs font-bold",
+                "min-h-11 shrink-0 rounded-md border px-3 py-2 text-xs font-bold",
                 !position
                   ? "border-primary bg-primary text-primary-foreground"
                   : "border-border bg-surface hover:bg-surface-muted",
@@ -132,7 +132,7 @@ export function PlayerMarket({
                 type="button"
                 onClick={() => onPositionChange(option)}
                 className={cn(
-                  "shrink-0 rounded-md border px-3 py-2 text-xs font-bold",
+                  "min-h-11 shrink-0 rounded-md border px-3 py-2 text-xs font-bold",
                   position === option
                     ? "border-primary bg-primary text-primary-foreground"
                     : "border-border bg-surface hover:bg-surface-muted",
@@ -200,7 +200,7 @@ export function PlayerMarket({
                 >
                   <div className="min-w-0">
                     <div className="flex min-w-0 flex-wrap items-center gap-2">
-                      <p className="truncate font-bold">{getPlayerName(player)}</p>
+                      <p className="font-bold">{getPlayerName(player)}</p>
                       <PositionBadge position={player.position} />
                     </div>
                     <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">

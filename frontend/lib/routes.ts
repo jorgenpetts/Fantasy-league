@@ -6,6 +6,7 @@ export const protectedRoutes = [
   "/players",
   "/leaderboard",
   "/profile",
+  "/403",
   "/admin",
 ];
 
@@ -28,7 +29,7 @@ export function isProtectedRoute(pathname: string) {
 }
 
 export function getSafeNextPath(value: string | null) {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+  if (!value || !value.startsWith("/") || value.startsWith("//") || /[\\\u0000-\u0020]/.test(value)) {
     return "/";
   }
 

@@ -2,11 +2,7 @@ import { ApiError } from "./api";
 
 export function getApiErrorMessage(error: unknown, fallback: string) {
   if (error instanceof ApiError) {
-    return error.message;
-  }
-
-  if (error instanceof Error) {
-    return error.message;
+    return error.status >= 500 ? fallback : error.message;
   }
 
   return fallback;

@@ -206,7 +206,7 @@ export function OtherFantasyTeamPage({ teamId }: { teamId: string }) {
         <div className="mb-5 max-w-md">
           <Select
             label="Select round"
-            value={effectiveRoundId ?? undefined}
+            value={effectiveRoundId ?? ""}
             options={roundViews.map((view) => ({
               value: view.round.id,
               label: `${formatRoundName(view.round.roundNumber, view.round.name)}${view.lineup && !isFantasyLineup(view.lineup) ? " - Hidden" : ""}`,
@@ -217,6 +217,19 @@ export function OtherFantasyTeamPage({ teamId }: { teamId: string }) {
       ) : null}
 
       {secondaryLoading ? <HistoryLoading /> : null}
+
+      {[roundsQuery, rulesQuery, performanceQuery, leaderboardQuery].some((query) => query.isError) ? (
+        <ErrorState
+          title="Unable to load all team details"
+          description="Some round or scoring information is unavailable. Please try again."
+          onRetry={() => {
+            void roundsQuery.refetch();
+            void rulesQuery.refetch();
+            if (visibleLineup) void performanceQuery.refetch();
+            void leaderboardQuery.refetch();
+          }}
+        />
+      ) : null}
 
       {!secondaryLoading && roundViews.length === 0 ? (
         <EmptyState
@@ -252,7 +265,7 @@ export function OtherFantasyTeamPage({ teamId }: { teamId: string }) {
         />
       ) : null}
 
-      {!secondaryLoading && visibleLineup && rulesQuery.data ? (
+      {!secondaryLoading && !performanceQuery.isError && visibleLineup && rulesQuery.data ? (
         <div className="grid gap-5">
           <Card>
             <CardContent>

@@ -101,7 +101,16 @@ function SearchInput({
       onSearchChange(search);
     }, 300);
 
-    return () => window.clearTimeout(timer);
+    // A queued search must not send a quick player-link tap back to the directory.
+    function cancelOnNavigation(event: MouseEvent) {
+      const link = event.target instanceof Element ? event.target.closest("a[href]") : null;
+      if (link && new URL(link.getAttribute("href")!, window.location.href).pathname !== window.location.pathname) window.clearTimeout(timer);
+    }
+    document.addEventListener("click", cancelOnNavigation, true);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("click", cancelOnNavigation, true);
+    };
   }, [onSearchChange, search]);
 
   return (
@@ -130,7 +139,7 @@ function PlayerRow({ player }: { player: Player }) {
       className="grid gap-3 rounded-md border border-border bg-surface p-4 transition-colors hover:border-primary/40 hover:bg-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:grid-cols-[1.3fr_0.8fr_0.6fr_0.6fr] sm:items-center"
     >
       <div className="min-w-0">
-        <p className="truncate text-base font-bold">{getPlayerName(player)}</p>
+        <p className="text-base font-bold">{getPlayerName(player)}</p>
         {!player.active ? (
           <Badge className="mt-2" tone="neutral">
             Inactive
@@ -257,7 +266,7 @@ export function PlayersDirectoryPage() {
                       )
                     }
                     className={cn(
-                      "shrink-0 rounded-md border px-3 py-2 text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                      "min-h-11 shrink-0 rounded-md border px-3 py-2 text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                       active
                         ? "border-primary bg-primary text-primary-foreground"
                         : "border-border bg-surface text-foreground hover:bg-surface-muted",

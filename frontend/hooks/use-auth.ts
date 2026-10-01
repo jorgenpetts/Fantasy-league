@@ -18,8 +18,11 @@ function isUnauthorized(error: unknown) {
 }
 
 function clearUserSpecificCache(queryClient: ReturnType<typeof useQueryClient>) {
-  queryClient.removeQueries();
+  void queryClient.cancelQueries();
+  // Keep the observed auth query so mounted route guards receive the signed-out
+  // identity. Removing it first leaves observers attached to the old user.
   queryClient.setQueryData(queryKeys.auth.me, null);
+  queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== "auth" });
 }
 
 export function useCurrentUser() {
@@ -42,20 +45,23 @@ export function useAuth() {
   const currentUserQuery = useCurrentUser();
   const user = currentUserQuery.data?.user ?? null;
 
+  async function loadAuthenticatedUser() {
+    clearUserSpecificCache(queryClient);
+    await queryClient.fetchQuery({
+      queryKey: queryKeys.auth.me,
+      queryFn: getCurrentUser,
+      staleTime: 0,
+    });
+  }
+
   const loginMutation = useMutation({
     mutationFn: loginRequest,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });
-      await currentUserQuery.refetch();
-    },
+    onSuccess: loadAuthenticatedUser,
   });
 
   const registerMutation = useMutation({
     mutationFn: registerRequest,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });
-      await currentUserQuery.refetch();
-    },
+    onSuccess: loadAuthenticatedUser,
   });
 
   const logoutMutation = useMutation({

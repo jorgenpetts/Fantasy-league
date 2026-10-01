@@ -19,6 +19,7 @@ export const queryKeys = {
       ["lineups", "team-round", teamId, roundId] as const,
   },
   seasons: {
+    all: ["seasons", "all"] as const,
     current: ["seasons", "current"] as const,
     rounds: (seasonId?: string) => ["seasons", seasonId, "rounds"] as const,
   },

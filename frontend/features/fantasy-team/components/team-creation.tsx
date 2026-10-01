@@ -18,6 +18,7 @@ export function TeamCreation({ season }: { season: Season }) {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (createTeam.isPending) return;
     const trimmedName = name.trim();
 
     if (!trimmedName) {
@@ -73,7 +74,7 @@ export function TeamCreation({ season }: { season: Season }) {
               name="teamName"
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="Boundary Bashers"
+              placeholder="Your fantasy team name"
               maxLength={80}
               required
               error={error}
