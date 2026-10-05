@@ -6,6 +6,7 @@ export const statFields = [
   { key: "wickets", label: "Wickets", group: "Bowling" },
   { key: "runsConceded", label: "Runs conceded", group: "Bowling" },
   { key: "ballsBowled", label: "Balls bowled", group: "Bowling" },
+  { key: "maidens", label: "Maidens", group: "Bowling" },
   { key: "catches", label: "Catches", group: "Fielding" },
   { key: "droppedCatches", label: "Dropped catches", group: "Fielding" },
   { key: "stumpings", label: "Stumpings", group: "Fielding" },
@@ -13,15 +14,15 @@ export const statFields = [
 ] as const;
 
 export type StatKey = (typeof statFields)[number]["key"];
-export type PerformanceInput = { playerId: string; didBat: boolean } & Record<
+export type PerformanceInput = { playerId: string; didBat: boolean; notOut: boolean } & Record<
   StatKey,
   number
 >;
-export type PerformanceDraft = { didBat: boolean } & Record<StatKey, string>;
+export type PerformanceDraft = { didBat: boolean; notOut: boolean } & Record<StatKey, string>;
 export type Drafts = Record<string, PerformanceDraft>;
 export type RowErrors = Record<
   string,
-  Partial<Record<StatKey | "didBat" | "row", string>>
+  Partial<Record<StatKey | "didBat" | "notOut" | "row", string>>
 >;
 export type ScoringSummary = {
   roundId: string;
@@ -35,6 +36,7 @@ export function draftFromPerformance(
 ): PerformanceDraft {
   return {
     didBat: performance?.didBat ?? false,
+    notOut: performance?.notOut ?? false,
     ...Object.fromEntries(
       statFields.map(({ key }) => [key, String(performance?.[key] ?? 0)]),
     ),
@@ -48,6 +50,7 @@ export function matchesSaved(
   return Boolean(
     saved &&
     draft.didBat === saved.didBat &&
+    draft.notOut === saved.notOut &&
     statFields.every(
       ({ key }) =>
         /^\d+$/.test(draft[key].trim()) && Number(draft[key]) === saved[key],
@@ -62,6 +65,7 @@ export function prepareBulkSave(drafts: Drafts) {
     const row: PerformanceInput = {
       playerId,
       didBat: draft.didBat,
+      notOut: draft.notOut,
     } as PerformanceInput;
     for (const { key, label } of statFields) {
       const value = draft[key].trim();

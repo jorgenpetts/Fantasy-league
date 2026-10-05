@@ -95,20 +95,31 @@ export function PerformanceGrid({
       </span>
     );
   }
-  function batted(player: Player, draft: PerformanceDraft, compact = false) {
+  function booleanStat(
+    player: Player,
+    draft: PerformanceDraft,
+    key: "didBat" | "notOut",
+    label: string,
+    compact = false,
+  ) {
     return (
       <label className="inline-flex min-h-11 items-center gap-2 text-sm">
         <input
           className="size-5 accent-primary"
           type="checkbox"
-          aria-label={`${player.firstName} ${player.lastName} batted`}
-          checked={draft.didBat}
-          disabled={disabled}
-          onChange={(event) =>
-            change(player.id, { ...draft, didBat: event.target.checked })
-          }
+          aria-label={`${player.firstName} ${player.lastName} ${label.toLowerCase()}`}
+          checked={draft[key]}
+          disabled={disabled || (key === "notOut" && !draft.didBat)}
+          onChange={(event) => {
+            const checked = event.target.checked;
+            change(player.id, {
+              ...draft,
+              [key]: checked,
+              ...(key === "didBat" && !checked ? { notOut: false } : {}),
+            });
+          }}
         />
-        {compact ? null : "Batted?"}
+        {compact ? null : label}
       </label>
     );
   }
@@ -154,6 +165,9 @@ export function PerformanceGrid({
               <th scope="col" className="w-12 p-1">
                 Batted?
               </th>
+              <th scope="col" className="w-12 p-1">
+                Not out?
+              </th>
               {statFields.map(({ key, label }) => (
                 <th scope="col" key={key} className="p-1">
                   {label}
@@ -179,7 +193,12 @@ export function PerformanceGrid({
                   <th scope="row" className="p-2 text-left font-normal">
                     {identity(player)}
                   </th>
-                  <td className="p-1">{batted(player, draft, true)}</td>
+                  <td className="p-1">
+                    {booleanStat(player, draft, "didBat", "Batted?", true)}
+                  </td>
+                  <td className="p-1">
+                    {booleanStat(player, draft, "notOut", "Not out?", true)}
+                  </td>
                   {statFields.map(({ key, label }) => (
                     <td key={key} className="p-1 align-top pt-3">
                       {stat(player, draft, key, label, false)}
@@ -217,7 +236,12 @@ export function PerformanceGrid({
               {["Batting", "Bowling", "Fielding"].map((group) => (
                 <fieldset key={group} className="mb-4 min-w-0">
                   <legend className="mb-2 text-sm font-bold">{group}</legend>
-                  {group === "Batting" ? batted(player, draft) : null}
+                  {group === "Batting" ? (
+                    <div className="mb-2 flex flex-wrap gap-4">
+                      {booleanStat(player, draft, "didBat", "Batted?")}
+                      {booleanStat(player, draft, "notOut", "Not out?")}
+                    </div>
+                  ) : null}
                   <div className="grid grid-cols-2 gap-3">
                     {statFields
                       .filter((field) => field.group === group)

@@ -6,6 +6,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Cricket Fantasy League",
   description: "A local-club fantasy cricket league application.",
+  icons: {
+    icon: "/ECC_logo.jpeg",
+    shortcut: "/ECC_logo.jpeg",
+    apple: "/ECC_logo.jpeg",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

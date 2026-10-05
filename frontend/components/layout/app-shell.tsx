@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -198,9 +199,14 @@ function AppShellContent({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-30 border-b border-border bg-surface/95 backdrop-blur">
         <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-2 py-2 px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex min-w-0 items-center gap-3">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-black text-primary-foreground">
-              ECC
-            </span>
+            <Image
+              src="/ECC_logo.jpeg"
+              alt="Edgemead Cricket Club"
+              width={36}
+              height={36}
+              priority
+              className="size-9 shrink-0 rounded-md object-cover"
+            />
             <span className="min-w-0">
               <span className="block truncate text-sm font-bold">
                 ECC Fantasy League

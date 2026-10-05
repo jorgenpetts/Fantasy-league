@@ -33,6 +33,7 @@ function getSummary(performances: PlayerPerformance[]) {
     (summary, performance) => ({
       runs: summary.runs + performance.runs,
       wickets: summary.wickets + performance.wickets,
+      maidens: summary.maidens + performance.maidens,
       catches: summary.catches + performance.catches,
       droppedCatches: summary.droppedCatches + performance.droppedCatches,
       stumpings: summary.stumpings + performance.stumpings,
@@ -41,6 +42,7 @@ function getSummary(performances: PlayerPerformance[]) {
     {
       runs: 0,
       wickets: 0,
+      maidens: 0,
       catches: 0,
       droppedCatches: 0,
       stumpings: 0,
@@ -96,11 +98,17 @@ function PerformanceMobileCard({
       <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
         <div>
           <dt className="text-muted-foreground">Runs</dt>
-          <dd className="font-bold">{performance.runs}</dd>
+          <dd className="font-bold">
+            {performance.runs}{performance.notOut ? "*" : ""}
+          </dd>
         </div>
         <div>
           <dt className="text-muted-foreground">Wickets</dt>
           <dd className="font-bold">{performance.wickets}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">Maidens</dt>
+          <dd className="font-bold">{performance.maidens}</dd>
         </div>
         <div>
           <dt className="text-muted-foreground">Catches</dt>
@@ -158,6 +166,7 @@ function PerformanceHistory({
                 <th className="px-4 py-3">Round</th>
                 <th className="px-4 py-3 text-right">Runs</th>
                 <th className="px-4 py-3 text-right">Wkts</th>
+                <th className="px-4 py-3 text-right">Maidens</th>
                 <th className="px-4 py-3 text-right">Catches</th>
                 <th className="px-4 py-3 text-right">Drops</th>
                 <th className="px-4 py-3 text-right">Stumpings</th>
@@ -174,8 +183,11 @@ function PerformanceHistory({
                       performance.round.name,
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right">{performance.runs}</td>
+                  <td className="px-4 py-3 text-right">
+                    {performance.runs}{performance.notOut ? "*" : ""}
+                  </td>
                   <td className="px-4 py-3 text-right">{performance.wickets}</td>
+                  <td className="px-4 py-3 text-right">{performance.maidens}</td>
                   <td className="px-4 py-3 text-right">{performance.catches}</td>
                   <td className="px-4 py-3 text-right">
                     {performance.droppedCatches}
@@ -290,9 +302,10 @@ export function PlayerProfilePage({ playerId }: { playerId: string }) {
         </CardContent>
       </Card>
 
-      <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+      <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-7">
         <StatCard label="Runs" value={formatPoints(summary.runs)} />
         <StatCard label="Wickets" value={formatPoints(summary.wickets)} />
+        <StatCard label="Maidens" value={formatPoints(summary.maidens)} />
         <StatCard label="Catches" value={formatPoints(summary.catches)} />
         <StatCard label="Drops" value={formatPoints(summary.droppedCatches)} />
         <StatCard label="Stumpings" value={formatPoints(summary.stumpings)} />

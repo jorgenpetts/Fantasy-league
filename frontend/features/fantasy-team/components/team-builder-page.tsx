@@ -6,6 +6,7 @@ import { EmptyState, ErrorState } from "@/components/ui/state";
 import { Badge } from "@/components/ui/badge";
 import { formatDeadline } from "@/lib/format";
 import { ApiError } from "@/lib/api";
+import type { FantasyRules } from "@/types/api";
 import {
   useCurrentSeason,
   useFantasyRules,
@@ -17,6 +18,23 @@ import { TeamBuilder } from "./team-builder";
 import { TeamBuilderLoading } from "./team-builder-loading";
 import { TeamCreation } from "./team-creation";
 import { TeamHistoryNav } from "./team-history-nav";
+import { FantasyRulesDialog } from "./fantasy-rules-dialog";
+
+function RulesAccess({ rules }: { rules: FantasyRules }) {
+  return (
+    <aside className="mb-5 flex flex-col gap-3 rounded-md border border-primary/25 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h2 className="font-bold">How does Fantasy Cricket work?</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          View squad requirements, transfers, chips, and the complete points table.
+        </p>
+      </div>
+      <div className="shrink-0">
+        <FantasyRulesDialog rules={rules} />
+      </div>
+    </aside>
+  );
+}
 
 export function TeamBuilderPage() {
   const statusQuery = useFantasyTeamStatus();
@@ -65,6 +83,7 @@ export function TeamBuilderPage() {
           title="Create Your Team"
           description="Choose a name, then select your 11-player fantasy squad."
         />
+        <RulesAccess rules={rules} />
         {seasonQuery.isLoading ? <TeamBuilderLoading /> : null}
         {seasonQuery.error instanceof ApiError && seasonQuery.error.status === 404 ? (
           <EmptyState
@@ -90,6 +109,7 @@ export function TeamBuilderPage() {
         title={status.fantasyTeam.name}
         description="Your fantasy squad"
       />
+      <RulesAccess rules={rules} />
       <TeamHistoryNav />
       <EmptyState
           title="No active fantasy round"
@@ -103,7 +123,11 @@ export function TeamBuilderPage() {
   if (lineupQuery.isLoading) {
     return (
       <PageContainer>
-        <PageHeader eyebrow="My Team" title={status.fantasyTeam.name} />
+        <PageHeader
+          eyebrow="My Team"
+          title={status.fantasyTeam.name}
+        />
+        <RulesAccess rules={rules} />
         <TeamBuilderLoading />
       </PageContainer>
     );
@@ -112,7 +136,11 @@ export function TeamBuilderPage() {
   if (lineupQuery.isError || !lineupQuery.data) {
     return (
       <PageContainer>
-        <PageHeader eyebrow="My Team" title={status.fantasyTeam.name} />
+        <PageHeader
+          eyebrow="My Team"
+          title={status.fantasyTeam.name}
+        />
+        <RulesAccess rules={rules} />
         <ErrorState
           title="Unable to load your current squad"
           description="The round may have changed. Refresh the team data and try again."
@@ -146,6 +174,7 @@ export function TeamBuilderPage() {
           </Badge>
         }
       />
+      <RulesAccess rules={rules} />
       <TeamHistoryNav />
       <TeamBuilder
         key={editorKey}

@@ -53,11 +53,13 @@ export type PlayerPerformance = {
   playerId: string;
   roundId: string;
   didBat: boolean;
+  notOut: boolean;
   runs: number;
   ballsFaced: number;
   wickets: number;
   runsConceded: number;
   ballsBowled: number;
+  maidens: number;
   catches: number;
   droppedCatches: number;
   stumpings: number;

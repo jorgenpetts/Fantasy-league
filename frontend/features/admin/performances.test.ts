@@ -22,7 +22,7 @@ const saved = {
   ...Object.fromEntries(
     Object.entries(draftFromPerformance()).map(([key, value]) => [
       key,
-      key === "didBat" ? value : Number(value),
+      key === "didBat" || key === "notOut" ? value : Number(value),
     ]),
   ),
   playerId: "a",
@@ -36,6 +36,7 @@ test("untouched missing performances never enter a bulk payload", () => {
   assert.equal(result.performances.length, 1);
   assert.equal(result.performances[0].runs, 0);
   assert.equal(result.performances[0].didBat, false);
+  assert.equal(result.performances[0].notOut, false);
   assert.equal("fantasyPoints" in result.performances[0], false);
   assert.deepEqual(result.errors, {});
 });
@@ -51,6 +52,20 @@ test("didBat is explicit, including a duck; restoring saved values clears dirty 
     matchesSaved({ ...draftFromPerformance(saved), runs: "0e0" }, saved),
     false,
   );
+});
+
+test("not out and maidens are included in performance payloads", () => {
+  const result = prepareBulkSave({
+    a: {
+      ...draftFromPerformance(),
+      didBat: true,
+      notOut: true,
+      maidens: "2",
+    },
+  });
+  assert.equal(result.performances[0].notOut, true);
+  assert.equal(result.performances[0].maidens, 2);
+  assert.deepEqual(result.errors, {});
 });
 
 test("reject negative, fractional, blank, notation and overflowing stats", () => {
