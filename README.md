@@ -29,6 +29,15 @@ Required backend environment variables:
 - `CORS_ORIGIN`
 - `AUTH_COOKIE_NAME`
 
+`backend/prisma/schema.prisma` defines the provider, models, and constraints.
+Prisma 6.19 still requires its `url` and `directUrl` environment references.
+`backend/prisma.config.ts` supplies datasource URLs when available, plus the
+migration path and seed command. Prisma commands run from `backend/` load
+`backend/.env` for development.
+Explicit process environment values for `DATABASE_URL` and `DIRECT_URL` take
+precedence for CI and production commands. Set both to the intended database
+when using separate runtime and migration URLs.
+
 Useful commands:
 
 ```bash
@@ -154,7 +163,7 @@ npm ci
 npm run typecheck
 npm run lint
 npm test
-NEXT_PUBLIC_API_URL=http://localhost:4000/api npm run build
+BACKEND_ORIGIN=http://localhost:4000 npm run build
 
 cd ..
 docker compose -f compose.production.yml build

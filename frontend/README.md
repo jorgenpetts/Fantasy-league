@@ -12,9 +12,10 @@ npm run dev
 ```
 
 Start the backend separately as described in the repository README.
-`NEXT_PUBLIC_API_URL` must include the `/api` suffix. Local development defaults
-to `http://localhost:4000/api`. Production builds require an explicit value;
-Next.js embeds this public value at build time.
+Local development sends browser requests to `/api`; Next.js rewrites them to
+`BACKEND_ORIGIN` (default `http://localhost:4000`). If needed locally,
+`NEXT_PUBLIC_API_URL` can point directly to an API URL ending in `/api`.
+Production browser requests always use `/api`.
 
 ## Verification
 
@@ -22,7 +23,7 @@ Next.js embeds this public value at build time.
 npm run lint
 npm run typecheck
 npm test
-NEXT_PUBLIC_API_URL=https://api.example.com/api npm run build
+BACKEND_ORIGIN=http://localhost:4000 npm run build
 npm run test:e2e -- --workers=2
 ```
 
@@ -47,10 +48,12 @@ the backend. Interrupted processes may require cleanup of their printed QA schem
 
 ## Deployment configuration
 
-Set `NEXT_PUBLIC_API_URL` before building. Configure backend `CORS_ORIGIN` to the
-exact frontend origin, a strong `JWT_SECRET`, and the database URLs. Production
-uses HTTPS with an HttpOnly, Secure, SameSite=None JWT cookie; requests include
-credentials. Test the actual deployed origins and browser cookie policy before
-opening registration. No JWT or database secrets belong in frontend variables.
+Set server-only `BACKEND_ORIGIN` to the Render backend origin in Vercel. The
+`/api/:path*` rewrite forwards requests there while browsers stay on the
+frontend origin. `NEXT_PUBLIC_API_URL` is only a local development override;
+do not set it to Render in Vercel. Production uses an HttpOnly, Secure,
+SameSite=Lax host-only JWT cookie, and requests include credentials. Configure
+backend `CORS_ORIGIN` to the eventual frontend origin when deploying. No JWT
+or database secrets belong in frontend variables.
 
 See [MVP sign-off](MVP_SIGN_OFF.md) for the final verification results and scope.

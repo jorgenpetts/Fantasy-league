@@ -76,7 +76,7 @@ jobs:
       run:
         working-directory: frontend
     env:
-      NEXT_PUBLIC_API_URL: http://localhost:4000/api
+      BACKEND_ORIGIN: http://localhost:4000
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -152,6 +152,6 @@ jobs:
         run: >-
           docker build
           --file frontend/Dockerfile
-          --build-arg NEXT_PUBLIC_API_URL=http://localhost:4000/api
+          --build-arg BACKEND_ORIGIN=http://localhost:4000
           --tag fantasy-cricket-frontend:ci
           frontend

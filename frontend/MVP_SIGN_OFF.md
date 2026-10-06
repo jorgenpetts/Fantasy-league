@@ -77,6 +77,9 @@ Admin management browser coverage also exercises player creation, edits, exact p
 
 ## 4. Auth verification
 
+This section records the earlier MVP sign-off. Current proxy and cookie
+configuration is documented in `README.md` (same-origin `/api`, SameSite=Lax).
+
 - JWT transport: HttpOnly cookie (`fantasy_cricket_session` by default); no browser token storage. Production adds Secure and SameSite=None. The central API client sends `credentials: "include"`.
 - Verification: backend `requireAuth` calls `verifyAuthToken`, including signature and expiry validation. `/api/auth/me` supplies the authoritative account. Passwords use bcrypt.
 - Expiry: protected 401 errors clear the observed identity and private query caches and redirect to login. A regression exposed and fixed an observer/cache-removal loop. Auth outages instead show a retry state.
