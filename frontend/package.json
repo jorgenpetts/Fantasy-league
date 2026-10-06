@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "node --experimental-strip-types --experimental-default-type=module --test features/fantasy-team/*.test.ts features/leaderboard/*.test.ts features/admin/*.test.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "test:e2e:admin": "playwright test e2e/admin-management.spec.ts",
     "test:e2e:performances": "playwright test e2e/admin-performances.spec.ts",
     "test:e2e:responsive": "playwright test e2e/responsive.spec.ts e2e/mobile-interactions.spec.ts",
