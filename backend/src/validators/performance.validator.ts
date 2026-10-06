@@ -17,11 +17,13 @@ export const playerPerformancesQuerySchema = z.object({
 export const performanceStatsSchema = z
   .object({
     didBat: z.boolean().default(false),
+    notOut: z.boolean().default(false),
     runs: z.coerce.number().int().min(0).default(0),
     ballsFaced: z.coerce.number().int().min(0).default(0),
     wickets: z.coerce.number().int().min(0).default(0),
     runsConceded: z.coerce.number().int().min(0).default(0),
     ballsBowled: z.coerce.number().int().min(0).default(0),
+    maidens: z.coerce.number().int().min(0).default(0),
     catches: z.coerce.number().int().min(0).default(0),
     droppedCatches: z.coerce.number().int().min(0).default(0),
     stumpings: z.coerce.number().int().min(0).default(0),

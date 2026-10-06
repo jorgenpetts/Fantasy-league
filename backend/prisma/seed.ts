@@ -125,11 +125,13 @@ function stat(
   playerId: string,
   overrides: Partial<{
     didBat: boolean;
+    notOut: boolean;
     runs: number;
     ballsFaced: number;
     wickets: number;
     runsConceded: number;
     ballsBowled: number;
+    maidens: number;
     catches: number;
     droppedCatches: number;
     stumpings: number;
@@ -139,11 +141,13 @@ function stat(
   return {
     playerId,
     didBat: false,
+    notOut: false,
     runs: 0,
     ballsFaced: 0,
     wickets: 0,
     runsConceded: 0,
     ballsBowled: 0,
+    maidens: 0,
     catches: 0,
     droppedCatches: 0,
     stumpings: 0,

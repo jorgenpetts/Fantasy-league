@@ -6,7 +6,8 @@ import { performanceStatsSchema } from "../validators/performance.validator.js";
 import { createFantasyTeam } from "./fantasyTeam.service.js";
 import { getLineup, saveLineup } from "./lineup.service.js";
 import { bulkUpsertPerformances, recalculateRound } from "./performance.service.js";
-import { activateChip } from "./chip.service.js";
+import { activateChip, removeChip } from "./chip.service.js";
+import { updateRound } from "./round.service.js";
 import { getOverallLeaderboard, getRoundLeaderboard } from "./leaderboard.service.js";
 
 const marker = `audit-${Date.now()}`;
@@ -26,11 +27,13 @@ const state = {
 
 const baseStats = {
   didBat: true,
+  notOut: false,
   runs: 10,
   ballsFaced: 10,
   wickets: 0,
   runsConceded: 0,
   ballsBowled: 0,
+  maidens: 0,
   catches: 0,
   droppedCatches: 0,
   stumpings: 0,
@@ -226,13 +229,28 @@ describe("backend fantasy flow integration", () => {
     });
 
     const ownerView = await getLineup(state.teamId, round1, users.owner.id);
+    assert.ok("players" in ownerView);
+    assert.equal(ownerView.transfers.transfersMade, 0);
+    assert.equal(ownerView.transfers.transferPenalty, 0);
     const hiddenView = await getLineup(state.teamId, round1, users.other.id);
     assert.equal("lineupLockedForViewing" in ownerView, false);
     assert.equal("lineupLockedForViewing" in hiddenView, true);
+    assert.equal("players" in hiddenView, false);
+    assert.equal("captainId" in hiddenView, false);
+
+    await updateRound(round1, { status: RoundStatus.LOCKED });
+    const earlyLockView = await getLineup(state.teamId, round1, users.other.id);
+    assert.equal("lineupLockedForViewing" in earlyLockView, true);
 
     await lockRound(round1);
     const visibleView = await getLineup(state.teamId, round1, users.other.id);
     assert.equal("lineupLockedForViewing" in visibleView, false);
+    await assert.rejects(saveLineup(state.teamId, round1, users.owner.id, {
+      playerIds: initialSquad(), captainId: id("bat1"),
+    }), /locked/);
+    await assert.rejects(activateChip(state.teamId, round1, users.owner.id, ChipType.WILDCARD), /locked/);
+    await assert.rejects(updateRound(round1, { status: RoundStatus.UPCOMING, deadline: futureDate(1) }), /reopened/);
+    await assert.rejects(updateRound(round1, { roundNumber: 99 }), /round number/);
 
     await bulkUpsertPerformances(round1, {
       performances: [
@@ -254,6 +272,7 @@ describe("backend fantasy flow integration", () => {
     assert.equal(scoredRound1.grossPoints, 240);
     assert.equal(scoredRound1.transferPenalty, 0);
     assert.equal(scoredRound1.roundPoints, 240);
+    await updateRound(round1, { status: RoundStatus.COMPLETED });
 
     await bulkUpsertPerformances(round1, {
       performances: [performance("wk1", 100)],
@@ -296,6 +315,11 @@ describe("backend fantasy flow integration", () => {
 
     const round3 = await createRound(3, futureDate(3));
     await activateChip(state.teamId, round3, users.owner.id, ChipType.WILDCARD);
+    await assert.rejects(activateChip(state.teamId, round3, users.owner.id, ChipType.TRIPLE_CAPTAIN), /Another chip/);
+    await removeChip(state.teamId, round3, users.owner.id);
+    await activateChip(state.teamId, round3, users.owner.id, ChipType.TRIPLE_CAPTAIN);
+    await removeChip(state.teamId, round3, users.owner.id);
+    await activateChip(state.teamId, round3, users.owner.id, ChipType.WILDCARD);
     await saveLineup(state.teamId, round3, users.owner.id, {
       playerIds: initialSquad(),
       captainId: id("wk1"),
@@ -321,6 +345,7 @@ describe("backend fantasy flow integration", () => {
     assert.equal(wildcardRound.transferPenalty, 0);
 
     const round4 = await createRound(4, futureDate(4));
+    await assert.rejects(activateChip(state.teamId, round4, users.owner.id, ChipType.WILDCARD), /already been used/);
     await activateChip(
       state.teamId,
       round4,
@@ -350,6 +375,7 @@ describe("backend fantasy flow integration", () => {
     });
     assert.equal(tripleCaptainRound.grossPoints, 310);
     assert.equal(tripleCaptainRound.roundPoints, 310);
+    await assert.rejects(removeChip(state.teamId, round4, users.owner.id), /locked/);
 
     const firstBeforeRepeat = await prisma.fantasyLineup.findUniqueOrThrow({
       where: {
@@ -372,6 +398,9 @@ describe("backend fantasy flow integration", () => {
       include: { players: true },
     });
     assert.equal(firstAfterRepeat.roundPoints, firstBeforeRepeat.roundPoints);
+    assert.equal(firstAfterRepeat.captainId, ownerView.captainId);
+    assert.equal(firstAfterRepeat.transfersMade, ownerView.transfers.transfersMade);
+    assert.deepEqual(firstAfterRepeat.players.map((p) => p.playerId).sort(), ownerView.players.map((p) => p.id).sort());
     assert.deepEqual(
       firstAfterRepeat.players.map((player) => player.playerId).sort(),
       firstBeforeRepeat.players.map((player) => player.playerId).sort(),
@@ -393,5 +422,19 @@ describe("backend fantasy flow integration", () => {
       where: { roundId: round1, playerId: id("wk1") },
     });
     assert.equal(round1PerformanceCount, 1);
+
+    await prisma.cricketPlayer.update({ where: { id: id("wk1") }, data: { active: false } });
+    const historical = await getLineup(state.teamId, round1, users.other.id);
+    assert.ok("players" in historical);
+    assert.equal(historical.players.find((p) => p.id === id("wk1"))?.active, false);
+
+    const round5 = await createRound(5, futureDate(5));
+    const round6 = await createRound(6, futureDate(6));
+    const races = await Promise.allSettled([
+      activateChip(state.otherTeamId, round5, users.other.id, ChipType.WILDCARD),
+      activateChip(state.otherTeamId, round6, users.other.id, ChipType.WILDCARD),
+    ]);
+    assert.equal(races.filter((r) => r.status === "fulfilled").length, 1);
+    assert.equal(await prisma.chipUsage.count({ where: { fantasyTeamId: state.otherTeamId, chipType: ChipType.WILDCARD } }), 1);
   });
 });

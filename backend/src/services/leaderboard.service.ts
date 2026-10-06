@@ -100,7 +100,13 @@ export async function getOverallLeaderboard(
     seasonId,
     roundId: null,
     rankingStyle: "competition",
-    entries: rankedRows.map(({ points: _points, ...entry }) => entry),
+    entries: rankedRows.map((entry) => ({
+      rank: entry.rank,
+      fantasyTeamId: entry.fantasyTeamId,
+      fantasyTeamName: entry.fantasyTeamName,
+      managerName: entry.managerName,
+      totalPoints: entry.totalPoints,
+    })),
   };
 }
 
@@ -157,7 +163,14 @@ export async function getRoundLeaderboard(
     seasonId,
     roundId,
     rankingStyle: "competition",
-    entries: rankedRows.map(({ points: _points, ...entry }) => entry),
+    entries: rankedRows.map((entry) => ({
+      rank: entry.rank,
+      fantasyTeamId: entry.fantasyTeamId,
+      fantasyTeamName: entry.fantasyTeamName,
+      managerName: entry.managerName,
+      roundPoints: entry.roundPoints,
+      totalPoints: entry.totalPoints,
+    })),
   };
 }
 

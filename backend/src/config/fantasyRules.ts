@@ -23,10 +23,12 @@ export const FANTASY_RULES = {
   },
   scoring: {
     pointsPerRun: 1,
+    notOutBonus: 10,
     fiftyBonus: 20,
     centuryBonus: 40,
     duckPenalty: 20,
     pointsPerWicket: 20,
+    pointsPerMaiden: 3,
     threeWicketBonus: 20,
     fiveWicketBonus: 40,
     expensiveBowlingRunsThreshold: 50,

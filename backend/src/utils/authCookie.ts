@@ -1,12 +1,10 @@
 import type { CookieOptions, Response } from "express";
 import { env } from "../config/env.js";
 
-const isProduction = env.NODE_ENV === "production";
-
 export const authCookieOptions: CookieOptions = {
   httpOnly: true,
-  secure: isProduction,
-  sameSite: isProduction ? "none" : "lax",
+  secure: env.COOKIE_SECURE,
+  sameSite: env.COOKIE_SECURE ? "none" : "lax",
   path: "/",
 };
 

@@ -2,6 +2,9 @@
 
 Mobile-friendly fantasy cricket app for a local club league.
 
+For the production-like local Docker environment, see
+[DOCKER_PRODUCTION_TEST.md](./DOCKER_PRODUCTION_TEST.md).
+
 ## Structure
 
 - `frontend/` - Next.js, React, TypeScript, Tailwind CSS
@@ -129,3 +132,32 @@ cd frontend
 npm install
 npm run dev
 ```
+
+## Continuous integration
+
+GitHub Actions runs on every pull request and every push to `main`. It checks the backend, frontend, fresh Prisma migrations on PostgreSQL 17, and both production Docker images. CI uses Node.js 22 and npm lockfiles; it does not deploy or use production credentials.
+
+Reproduce the main checks locally with:
+
+```bash
+cd backend
+npm ci
+npx prisma generate
+npx prisma validate
+npm run lint
+npm run typecheck
+npm test
+npm run build
+
+cd ../frontend
+npm ci
+npm run typecheck
+npm run lint
+npm test
+NEXT_PUBLIC_API_URL=http://localhost:4000/api npm run build
+
+cd ..
+docker compose -f compose.production.yml build
+```
+
+Backend integration tests and `prisma migrate deploy` require a disposable PostgreSQL database. GitHub Actions creates it automatically.

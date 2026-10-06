@@ -10,10 +10,20 @@ agents.MD
 
 # testing
 /coverage
+**/coverage/
+**/test-results/
+**/playwright-report/
+**/blob-report/
+**/.playwright/
+**/playwright/.cache/
+trace.zip
+*.webm
 
 # next.js
 /.next/
+**/.next/
 /out/
+**/out/
 
 # production
 /build
@@ -31,6 +41,7 @@ yarn-error.log*
 # local env files
 .env*.local
 .env
+.env.production.local
 
 # vercel
 .vercel

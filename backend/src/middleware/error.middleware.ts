@@ -3,7 +3,8 @@ import { ZodError } from "zod";
 import { AppError } from "../utils/AppError.js";
 import { logger } from "../utils/logger.js";
 
-export const errorHandler: ErrorRequestHandler = (error, req, res, _next) => {
+export const errorHandler: ErrorRequestHandler = (error, req, res, next) => {
+  void next;
   if (error instanceof AppError) {
     logger.warn("Application error", {
       requestId: req.id,

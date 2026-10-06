@@ -5,11 +5,13 @@ import type { ScoringRules } from "../config/scoringRules.js";
 export type PlayerPerformanceStats = Pick<
   PlayerPerformance,
   | "didBat"
+  | "notOut"
   | "runs"
   | "ballsFaced"
   | "wickets"
   | "runsConceded"
   | "ballsBowled"
+  | "maidens"
   | "catches"
   | "droppedCatches"
   | "stumpings"
@@ -36,7 +38,12 @@ export function calculatePlayerFantasyPoints(
         : 0;
 
   const duckPenalty =
-    performance.didBat && performance.runs === 0 ? rules.duckPenalty : 0;
+    performance.didBat && !performance.notOut && performance.runs === 0
+      ? rules.duckPenalty
+      : 0;
+
+  const notOutBonus =
+    performance.didBat && performance.notOut ? rules.notOutBonus : 0;
 
   const bowlingMilestoneBonus =
     performance.wickets >= 5
@@ -46,7 +53,7 @@ export function calculatePlayerFantasyPoints(
         : 0;
 
   const expensiveBowlingPenalty =
-    performance.runsConceded > rules.expensiveBowlingRunsThreshold &&
+    performance.runsConceded >= rules.expensiveBowlingRunsThreshold &&
     performance.wickets === 0
       ? rules.expensiveBowlingPenalty
       : 0;
@@ -55,7 +62,9 @@ export function calculatePlayerFantasyPoints(
     performance.runs * rules.pointsPerRun +
     battingMilestoneBonus -
     duckPenalty +
+    notOutBonus +
     performance.wickets * rules.pointsPerWicket +
+    performance.maidens * rules.pointsPerMaiden +
     bowlingMilestoneBonus -
     expensiveBowlingPenalty +
     performance.catches * rules.catch +

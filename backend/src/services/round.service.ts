@@ -1,7 +1,7 @@
 import { Prisma, RoundStatus, type Round, type Season } from "@prisma/client";
 import { prisma } from "../config/prisma.js";
 import { AppError } from "../utils/AppError.js";
-import { getRoundDeadlineState } from "../utils/roundDeadline.js";
+import { canEditRound, getRoundDeadlineState } from "../utils/roundDeadline.js";
 import type {
   CreateRoundInput,
   RoundQueryInput,
@@ -134,6 +134,21 @@ export async function updateRound(
 
   if (!existingRound) {
     throw new AppError(404, "Round not found.");
+  }
+
+  if (!canEditRound(existingRound) && canEditRound({ ...existingRound, ...input })) {
+    throw new AppError(409, "A locked round cannot be reopened for team changes.");
+  }
+  if ((input.seasonId && input.seasonId !== existingRound.seasonId) ||
+      (input.roundNumber !== undefined && input.roundNumber !== existingRound.roundNumber)) {
+    const [lineups, performances, chips] = await Promise.all([
+      prisma.fantasyLineup.count({ where: { roundId } }),
+      prisma.playerPerformance.count({ where: { roundId } }),
+      prisma.chipUsage.count({ where: { roundId } }),
+    ]);
+    if (lineups || performances || chips) {
+      throw new AppError(409, "A round with fantasy data cannot change season or round number.");
+    }
   }
 
   if (input.seasonId) {

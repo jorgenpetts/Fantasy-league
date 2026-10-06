@@ -207,11 +207,13 @@ export async function bulkUpsertPerformances(
           },
           update: {
             didBat: performance.didBat,
+            notOut: performance.notOut,
             runs: performance.runs,
             ballsFaced: performance.ballsFaced,
             wickets: performance.wickets,
             runsConceded: performance.runsConceded,
             ballsBowled: performance.ballsBowled,
+            maidens: performance.maidens,
             catches: performance.catches,
             droppedCatches: performance.droppedCatches,
             stumpings: performance.stumpings,

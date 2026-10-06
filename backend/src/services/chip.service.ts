@@ -1,4 +1,4 @@
-import { ChipType } from "@prisma/client";
+import { ChipType, type Prisma } from "@prisma/client";
 import { FANTASY_RULES } from "../config/fantasyRules.js";
 import { prisma } from "../config/prisma.js";
 import { AppError } from "../utils/AppError.js";
@@ -21,10 +21,11 @@ async function getOwnedTeamAndRound(
   fantasyTeamId: string,
   roundId: string,
   userId: string,
+  db: Prisma.TransactionClient = prisma,
 ) {
   const [fantasyTeam, round] = await Promise.all([
-    prisma.fantasyTeam.findUnique({ where: { id: fantasyTeamId } }),
-    prisma.round.findUnique({ where: { id: roundId } }),
+    db.fantasyTeam.findUnique({ where: { id: fantasyTeamId } }),
+    db.round.findUnique({ where: { id: roundId } }),
   ]);
 
   if (!fantasyTeam) {
@@ -116,32 +117,33 @@ export async function activateChip(
   userId: string,
   chipType: ChipType,
 ) {
-  const { round } = await getOwnedTeamAndRound(fantasyTeamId, roundId, userId);
-  const existingSeasonUsage = await prisma.chipUsage.findFirst({
-    where: {
-      fantasyTeamId,
-      chipType,
-      round: { seasonId: round.seasonId },
-    },
-  });
-
-  if (existingSeasonUsage && existingSeasonUsage.roundId !== roundId) {
-    throw new AppError(409, `${chipType} has already been used this season.`);
-  }
-
-  const chipUsage = await prisma.chipUsage.upsert({
-    where: {
-      fantasyTeamId_roundId: {
+  const chipUsage = await prisma.$transaction(async (tx) => {
+    // Serialize chip choices for this team, including requests for different rounds.
+    await tx.$queryRaw`SELECT "id" FROM "FantasyTeam" WHERE "id" = ${fantasyTeamId} FOR UPDATE`;
+    const { round } = await getOwnedTeamAndRound(fantasyTeamId, roundId, userId, tx);
+    const current = await tx.chipUsage.findUnique({
+      where: { fantasyTeamId_roundId: { fantasyTeamId, roundId } },
+    });
+    if (current && current.chipType !== chipType) {
+      throw new AppError(409, "Another chip is active. Remove it before choosing a different chip.");
+    }
+    const existingSeasonUsage = await tx.chipUsage.findFirst({
+      where: {
         fantasyTeamId,
-        roundId,
+        chipType,
+        round: { seasonId: round.seasonId },
       },
-    },
-    update: { chipType },
-    create: {
-      fantasyTeamId,
-      roundId,
-      chipType,
-    },
+    });
+
+    if (existingSeasonUsage && existingSeasonUsage.roundId !== roundId) {
+      throw new AppError(409, `${chipType} has already been used this season.`);
+    }
+
+    return tx.chipUsage.upsert({
+      where: { fantasyTeamId_roundId: { fantasyTeamId, roundId } },
+      update: {},
+      create: { fantasyTeamId, roundId, chipType },
+    });
   });
 
   await recalculateRound(roundId);
@@ -154,13 +156,10 @@ export async function removeChip(
   roundId: string,
   userId: string,
 ) {
-  await getOwnedTeamAndRound(fantasyTeamId, roundId, userId);
-
-  await prisma.chipUsage.deleteMany({
-    where: {
-      fantasyTeamId,
-      roundId,
-    },
+  await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT "id" FROM "FantasyTeam" WHERE "id" = ${fantasyTeamId} FOR UPDATE`;
+    await getOwnedTeamAndRound(fantasyTeamId, roundId, userId, tx);
+    await tx.chipUsage.deleteMany({ where: { fantasyTeamId, roundId } });
   });
 
   await recalculateRound(roundId);

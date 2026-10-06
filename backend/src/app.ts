@@ -6,6 +6,7 @@ import { env } from "./config/env.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 import { requestLogger } from "./middleware/requestLogger.middleware.js";
 import { apiRouter } from "./routes/index.js";
+import { healthRouter } from "./routes/health.routes.js";
 
 export const app = express();
 
@@ -20,6 +21,7 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(requestLogger);
 
+app.use("/health", healthRouter);
 app.use("/api", apiRouter);
 
 app.use(errorHandler);

@@ -13,7 +13,7 @@ import { canEditRound, getRoundDeadlineState } from "../utils/roundDeadline.js";
 import { calculateSquadValue } from "../utils/squadValue.js";
 import { getActiveChipForRound, getChipStatus, type ChipStatus } from "./chip.service.js";
 import { validateSquadPlayers } from "./squadValidation.service.js";
-import { calculateTransfers, type TransferCalculation } from "./transfer.service.js";
+import { calculateTransfers } from "./transfer.service.js";
 import type { FantasyTeamLineupsQueryInput } from "../validators/fantasyTeam.validator.js";
 import type {
   ManualLineupInput,
@@ -253,7 +253,8 @@ function canViewLineupPlayers(
   round: Pick<Round, "status" | "deadline">,
   requestingUserId: string,
 ): boolean {
-  return fantasyTeam.userId === requestingUserId || !canEditRound(round);
+  // An early administrative lock must not reveal selections before the deadline.
+  return fantasyTeam.userId === requestingUserId || round.deadline <= new Date();
 }
 
 function isManualLineupInput(input: SaveLineupInput): input is ManualLineupInput {

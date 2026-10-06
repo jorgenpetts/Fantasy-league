@@ -35,6 +35,14 @@ function expectValidationError(fn: () => void) {
 }
 
 describe("squad validation", () => {
+  it("enforces the exact R109,999,999 / R110,000,000 / R110,000,001 boundaries", () => {
+    for (const difference of [-1, 0, 1]) {
+      const squad = validSquad(10_000_000);
+      squad[0]!.price += difference;
+      if (difference > 0) expectValidationError(() => validateSquadPlayers(squad, "wk-1"));
+      else validateSquadPlayers(squad, "wk-1");
+    }
+  });
   it("accepts a valid 11-player squad at and below budget", () => {
     validateSquadPlayers(validSquad(10_000_000), "wk-1");
 

@@ -8,11 +8,13 @@ import {
 
 const basePerformance = {
   didBat: false,
+  notOut: false,
   runs: 0,
   ballsFaced: 0,
   wickets: 0,
   runsConceded: 0,
   ballsBowled: 0,
+  maidens: 0,
   catches: 0,
   droppedCatches: 0,
   stumpings: 0,
@@ -66,6 +68,31 @@ describe("final scoring service", () => {
     );
   });
 
+  it("awards the not-out bonus only to a player who batted", () => {
+    assert.equal(
+      calculatePlayerFantasyPoints({
+        ...basePerformance,
+        didBat: true,
+        notOut: true,
+        runs: 25,
+      }),
+      35,
+    );
+    assert.equal(
+      calculatePlayerFantasyPoints({ ...basePerformance, notOut: true }),
+      0,
+    );
+    assert.equal(
+      calculatePlayerFantasyPoints({
+        ...basePerformance,
+        didBat: true,
+        notOut: true,
+        runs: 0,
+      }),
+      10,
+    );
+  });
+
   it("applies non-stacking bowling milestone bonuses", () => {
     assert.equal(calculatePlayerFantasyPoints({ ...basePerformance, wickets: 1 }), 20);
     assert.equal(calculatePlayerFantasyPoints({ ...basePerformance, wickets: 2 }), 40);
@@ -75,14 +102,22 @@ describe("final scoring service", () => {
     assert.equal(calculatePlayerFantasyPoints({ ...basePerformance, wickets: 6 }), 160);
   });
 
-  it("applies expensive bowling penalty only above threshold with zero wickets", () => {
+  it("awards three points per maiden", () => {
+    assert.equal(
+      calculatePlayerFantasyPoints({ ...basePerformance, maidens: 2 }),
+      6,
+    );
+  });
+
+  it("applies expensive bowling penalty at 50 or more runs with zero wickets", () => {
+    assert.equal(calculatePlayerFantasyPoints({ ...basePerformance, runsConceded: 51, wickets: 1 }), 20);
     assert.equal(
       calculatePlayerFantasyPoints({
         ...basePerformance,
         runsConceded: 50,
         wickets: 0,
       }),
-      0,
+      -20,
     );
     assert.equal(
       calculatePlayerFantasyPoints({
