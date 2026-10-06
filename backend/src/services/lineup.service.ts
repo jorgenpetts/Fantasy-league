@@ -14,6 +14,7 @@ import { calculateSquadValue } from "../utils/squadValue.js";
 import { getActiveChipForRound, getChipStatus, type ChipStatus } from "./chip.service.js";
 import { validateSquadPlayers } from "./squadValidation.service.js";
 import { calculateTransfers } from "./transfer.service.js";
+import { ensureRoundLineup } from "./lineupCarryForward.service.js";
 import type { FantasyTeamLineupsQueryInput } from "../validators/fantasyTeam.validator.js";
 import type {
   ManualLineupInput,
@@ -439,7 +440,7 @@ export async function saveLineup(
     transferPenalty: transferCalculation.transferPenalty,
     wildcardActive: transferCalculation.wildcardActive,
   };
-  const lineup = await prisma.fantasyLineup.upsert({
+  const writeLineup = () => prisma.fantasyLineup.upsert({
     where: {
       fantasyTeamId_roundId: {
         fantasyTeamId: teamId,
@@ -478,6 +479,21 @@ export async function saveLineup(
     },
     include: lineupDetailsInclude,
   });
+
+  let lineup: LineupWithDetails;
+  try {
+    lineup = await writeLineup();
+  } catch (error) {
+    // A concurrent carry-forward may have created the missing row first.
+    if (
+      !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+      error.code !== "P2002" ||
+      !(await prisma.fantasyLineup.findUnique({
+        where: { fantasyTeamId_roundId: { fantasyTeamId: teamId, roundId } },
+      }))
+    ) throw error;
+    lineup = await writeLineup();
+  }
 
   return toLineupResponse(lineup);
 }
@@ -616,6 +632,7 @@ export async function getMyCurrentLineup(
     throw new AppError(404, "Fantasy team not found for the active season.");
   }
 
+  await ensureRoundLineup(fantasyTeam.id, round.id);
   const [lineupWithDetails, previousLineup] = await Promise.all([
     getLineupByTeamAndRoundWithDetails(fantasyTeam.id, round.id),
     findPreviousLineup(fantasyTeam.id, round),

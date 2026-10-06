@@ -55,6 +55,15 @@ Health check:
 curl http://localhost:4000/api/health
 ```
 
+## Round lineup carry-forward
+
+When the immediately previous round in the same season stops accepting edits,
+the backend copies each saved squad and captain into a separate lineup for the
+next round. Round updates, current-round checks, and scoring initialize any
+missing snapshots; the running API also checks the current round every minute.
+This works for managers who do not log in. The first round still needs a manual
+lineup. Chips, points, and transfer history do not carry forward.
+
 ## Backend API Summary
 
 Auth:
