@@ -22,6 +22,10 @@ app.use(express.json());
 app.use(requestLogger);
 
 app.use("/health", healthRouter);
+app.use("/api", (_req, res, next) => {
+  res.setHeader("Cache-Control", "no-store");
+  next();
+});
 app.use("/api", apiRouter);
 
 app.use(errorHandler);

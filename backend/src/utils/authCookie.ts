@@ -4,7 +4,7 @@ import { env } from "../config/env.js";
 export const authCookieOptions: CookieOptions = {
   httpOnly: true,
   secure: env.COOKIE_SECURE,
-  sameSite: env.COOKIE_SECURE ? "none" : "lax",
+  sameSite: "lax",
   path: "/",
 };
 
