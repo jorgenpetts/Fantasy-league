@@ -29,13 +29,23 @@ async function getSourceRound(roundId: string) {
     throw new AppError(404, "Round not found.");
   }
 
+  // Carry only while the target round can still be edited. Scoring an old
+  // round must never create a historical lineup that was not saved for it.
+  if (!canEditRound(round)) return null;
+
   const previousRound = await prisma.round.findFirst({
     where: { seasonId: round.seasonId, roundNumber: { lt: round.roundNumber } },
     orderBy: { roundNumber: "desc" },
   });
 
-  // The previous squad is final only after its edit window has closed.
-  return previousRound && !canEditRound(previousRound) ? previousRound : null;
+  // The previous selections must be final before copying them to a new round.
+  // Performance entry and scoring do not change those selections.
+  if (!previousRound || canEditRound(previousRound) ||
+      (previousRound.deadline > round.deadline && previousRound.updatedAt > round.deadline)) {
+    return null;
+  }
+
+  return { previousRound, targetDeadline: round.deadline };
 }
 
 async function createIfMissing(
@@ -83,12 +93,13 @@ export async function ensureRoundLineup(
   });
   if (existing) return existing;
 
-  const previousRound = await getSourceRound(roundId);
-  if (!previousRound) return null;
+  const sourceRound = await getSourceRound(roundId);
+  if (!sourceRound) return null;
 
   const source = await prisma.fantasyLineup.findUnique({
     where: {
-      fantasyTeamId_roundId: { fantasyTeamId, roundId: previousRound.id },
+      fantasyTeamId_roundId: { fantasyTeamId, roundId: sourceRound.previousRound.id },
+      fantasyTeam: { createdAt: { lte: sourceRound.targetDeadline } },
     },
     select: {
       fantasyTeamId: true,
@@ -107,19 +118,22 @@ export async function initializeRoundLineups(roundId: string): Promise<CarryForw
     alreadyExisting: 0,
     noPreviousLineup: 0,
   };
-  const previousRound = await getSourceRound(roundId);
-  if (!previousRound) return summary;
+  const sourceRound = await getSourceRound(roundId);
+  if (!sourceRound) return summary;
 
   const [sources, teamCount] = await Promise.all([
     prisma.fantasyLineup.findMany({
-      where: { roundId: previousRound.id },
+      where: {
+        roundId: sourceRound.previousRound.id,
+        fantasyTeam: { createdAt: { lte: sourceRound.targetDeadline } },
+      },
       select: {
         fantasyTeamId: true,
         captainId: true,
         players: { select: { playerId: true } },
       },
     }),
-    prisma.fantasyTeam.count({ where: { seasonId: previousRound.seasonId } }),
+    prisma.fantasyTeam.count({ where: { seasonId: sourceRound.previousRound.seasonId } }),
   ]);
   summary.noPreviousLineup = teamCount - sources.length;
 
