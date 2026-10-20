@@ -2,6 +2,7 @@ import { Prisma, RoundStatus, type Round, type Season } from "@prisma/client";
 import { prisma } from "../config/prisma.js";
 import { AppError } from "../utils/AppError.js";
 import { canEditRound, getRoundDeadlineState } from "../utils/roundDeadline.js";
+import { initializeRoundLineups } from "./lineupCarryForward.service.js";
 import type {
   CreateRoundInput,
   RoundQueryInput,
@@ -97,6 +98,7 @@ export async function getCurrentRound(): Promise<RoundResponse> {
     throw new AppError(404, "No current editable round found.");
   }
 
+  await initializeRoundLineups(round.id);
   return toRoundResponse(round);
 }
 
@@ -111,6 +113,7 @@ export async function createRound(
       include: { season: true },
     });
 
+    await initializeRoundLineups(round.id);
     return toRoundResponse(round);
   } catch (error) {
     if (isUniqueConstraintError(error)) {
@@ -161,6 +164,17 @@ export async function updateRound(
       data: input,
       include: { season: true },
     });
+
+    await initializeRoundLineups(round.id);
+    const nextRound = await prisma.round.findFirst({
+      where: {
+        seasonId: round.seasonId,
+        roundNumber: { gt: round.roundNumber },
+      },
+      orderBy: { roundNumber: "asc" },
+      select: { id: true },
+    });
+    if (nextRound) await initializeRoundLineups(nextRound.id);
 
     return toRoundResponse(round);
   } catch (error) {

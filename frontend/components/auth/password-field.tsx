@@ -31,12 +31,13 @@ export function PasswordField({
       />
       <Button
         type="button"
-        variant="ghost"
+        variant="outline"
         size="icon"
-        className="absolute bottom-0 right-0 border-transparent text-muted-foreground"
+        icon={visible ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+        className="absolute bottom-0 right-0 z-10 rounded-l-none border-border bg-surface-muted text-foreground shadow-sm hover:bg-border"
+        aria-pressed={visible}
         onClick={() => setVisible((current) => !current)}
       >
-        {visible ? <EyeOff /> : <Eye />}
         {visible ? "Hide password" : "Show password"}
       </Button>
     </div>

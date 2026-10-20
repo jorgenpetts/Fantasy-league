@@ -105,7 +105,7 @@ test("real JWT, registration, four rounds, scoring corrections, privacy and ADMI
 
     // The first scoring and completion cycle uses the actual admin forms.
     await adminPage.goto(`/admin/performances?roundId=${r1.id}`);
-    await adminPage.getByRole("checkbox", { name: "Keeper QA1 batted", exact: true }).filter({ visible: true }).check();
+    await adminPage.getByRole("checkbox", { name: "Keeper QA1 batted?", exact: true }).filter({ visible: true }).check();
     await adminPage.getByRole("textbox", { name: "Keeper QA1 Runs", exact: true }).filter({ visible: true }).fill("50");
     await adminPage.getByRole("button", { name: "Save Changes", exact: true }).click();
     await expect(adminPage.getByLabel("Keeper QA1 saved fantasy points").filter({ visible: true })).toHaveText("70 pts");
@@ -128,8 +128,10 @@ test("real JWT, registration, four rounds, scoring corrections, privacy and ADMI
     }
     const chipUrl = (round: Round) => `${api}/fantasy-teams/${team.id}/rounds/${round.id}/chip`;
     const r2 = await createRound(2);
-    const carried = await json<{ suggestedLineup: FantasyLineup }>(await user.get(`${api}/lineups/me/current`));
-    expect(carried.suggestedLineup.players.map((p) => p.id).sort()).toEqual(first.map((p) => p.id).sort());
+    const carried = await json<{ lineup: FantasyLineup; suggestedLineup: FantasyLineup | null }>(await user.get(`${api}/lineups/me/current`));
+    expect(carried.lineup.players.map((p) => p.id).sort()).toEqual(first.map((p) => p.id).sort());
+    expect(carried.suggestedLineup).toBeNull();
+    expect((await lineup(r2)).players.map((p) => p.id).sort()).toEqual(first.map((p) => p.id).sort());
     await save(r2, second);
     expect((await lineup(r2)).transfers).toMatchObject({ transfersMade: 5, transferPenalty: 8 });
     await score(r2, second[0]!, 73);

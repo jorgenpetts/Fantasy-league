@@ -2,6 +2,8 @@ import { app } from "./app.js";
 import { env } from "./config/env.js";
 import { prisma } from "./config/prisma.js";
 import { logger } from "./utils/logger.js";
+import { getCurrentRound } from "./services/round.service.js";
+import { AppError } from "./utils/AppError.js";
 
 const server = app.listen(env.PORT, "0.0.0.0", () => {
   logger.info("Fantasy cricket API listening", {
@@ -11,7 +13,23 @@ const server = app.listen(env.PORT, "0.0.0.0", () => {
   });
 });
 
+async function initializeCurrentRound() {
+  try {
+    await getCurrentRound();
+  } catch (error) {
+    if (error instanceof AppError && error.statusCode === 404) return;
+    logger.error("Current round lineup initialization failed", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+void initializeCurrentRound();
+const carryForwardTimer = setInterval(() => void initializeCurrentRound(), 60_000);
+carryForwardTimer.unref();
+
 function shutdown(signal: NodeJS.Signals) {
+  clearInterval(carryForwardTimer);
   logger.info("Shutting down fantasy cricket API", { signal });
 
   const forceExitTimer = setTimeout(() => {

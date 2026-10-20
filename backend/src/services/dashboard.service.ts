@@ -6,6 +6,7 @@ import { getRoundDeadlineState } from "../utils/roundDeadline.js";
 import { getChipStatus, type ChipStatus } from "./chip.service.js";
 import { getOverallLeaderboard, getOverallRank } from "./leaderboard.service.js";
 import { getLineup, type LineupResponse } from "./lineup.service.js";
+import { ensureRoundLineup } from "./lineupCarryForward.service.js";
 
 type DashboardRound = {
   id: string;
@@ -204,6 +205,9 @@ export async function getDashboard(userId: string): Promise<DashboardResponse> {
     getOverallLeaderboard(season.id),
   ]);
 
+  if (fantasyTeam && round?.status === "UPCOMING" && round.deadline > new Date()) {
+    await ensureRoundLineup(fantasyTeam.id, round.id);
+  }
   const lineup =
     fantasyTeam && round
       ? await getLineupForDashboard(fantasyTeam.id, round.id, userId)

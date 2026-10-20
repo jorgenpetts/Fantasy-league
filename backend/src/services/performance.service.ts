@@ -19,6 +19,7 @@ import {
   getCaptainMultiplier,
 } from "./scoring.service.js";
 import { calculateTransfers } from "./transfer.service.js";
+import { initializeRoundLineups } from "./lineupCarryForward.service.js";
 
 type DbClient = typeof prisma | Prisma.TransactionClient;
 
@@ -189,6 +190,7 @@ export async function bulkUpsertPerformances(
   roundId: string,
   input: BulkUpsertPerformancesInput,
 ): Promise<RecalculateRoundSummary> {
+  await initializeRoundLineups(roundId);
   return prisma.$transaction(
     async (tx) => {
       await ensureRoundExists(roundId, tx);
@@ -235,6 +237,7 @@ export async function bulkUpsertPerformances(
 export async function recalculateRound(
   roundId: string,
 ): Promise<RecalculateRoundSummary> {
+  await initializeRoundLineups(roundId);
   return prisma.$transaction(
     (tx) => recalculateRoundWithClient(roundId, tx),
     { timeout: 120_000 },
